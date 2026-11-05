@@ -67,7 +67,20 @@ main{background:linear-gradient(180deg,#102a40 0%,#16465a 100%);color:#f4f0ed}
 </style></head><body><div class="app" style="display:none"><aside><h1>🌊 Becoming</h1><p>Your Spending Recovery Companion</p><nav id="side"></nav></aside><main><h2 id="title">Welcome to Becoming</h2><div id="screen"></div><p class="foot">BECOMING TEST PREVIEW • Signed-in entries sync with your private Supabase account when online. Check the sync indicator before closing. Keep backups, especially before importing earlier entries. Not a substitute for professional care.</p></main></div><nav class="bottom" id="bottom" style="display:none"></nav><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 let activeUser=null;const encouragement=['You deserve peace, even on difficult days.','You can pause without giving up.','Your progress is bigger than one moment.','You are worthy of kindness, including your own.'];let encouragementIndex=new Date().getDate()%encouragement.length;let journalMode='blank',urgeNeed='',urgeStage=0;const settings=()=>{try{return JSON.parse(localStorage.getItem('becoming_preferences_'+(activeUser?.id||'signed_out'))||'{}')}catch{return {}}};function setPref(k,v){localStorage.setItem('becoming_preferences_'+(activeUser?.id||'signed_out'),JSON.stringify({...settings(),[k]:v}));render()}const tabs=[['home','⌂ Home'],['spending','♡ Spending'],['mental','☼ Wellness'],['reflect','✎ Reflect'],['growth','✿ My Growth'],['history','▤ Check-In History'],['more','☼ More']];let page='home',mood='',strategies=[],timer=null;const storageKey=k=>'becoming_cloud_cache_v1_'+(activeUser?.id||'signed_out')+'_'+k;
 const store=k=>{try{return JSON.parse(localStorage.getItem(storageKey(k))||'[]')}catch{return []}};
-function put(k,a){if(!activeUser||!cloudReady){alert('Please wait for your private records to load.');return}localStorage.setItem(storageKey(k),JSON.stringify(a));queueCloudSave(k,a)};const el=id=>document.getElementById(id),escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const now=()=>new Date().toLocaleString();const b=(text,fn,cls='')=>`<button class="btn ${cls}" onclick="${fn}">${text}</button>`;
+function put(k,a){
+ if(!activeUser||!cloudReady){alert('Please wait for your private records to load.');return false}
+ const prev=cloudPending.get(k),oldCache=localStorage.getItem(storageKey(k));
+ if(!queueCloudSave(k,a))return false;
+ try{localStorage.setItem(storageKey(k),JSON.stringify(a))}
+ catch(e){
+  if(prev)cloudPending.set(k,prev);else cloudPending.delete(k);
+  persistPending();
+  console.error('Local cache could not save',e);
+  alert('Could not save this change locally. No cloud save was started. Export a backup before continuing.');
+  return false;
+ }
+ flushCloudSection(k);return true;
+};const el=id=>document.getElementById(id),escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const now=()=>new Date().toLocaleString();const b=(text,fn,cls='')=>`<button class="btn ${cls}" onclick="${fn}">${text}</button>`;
 function nav(p){if(timer){clearInterval(timer);timer=null}page=p;render()}function menu(){for(const id of ['side','bottom'])el(id).innerHTML=tabs.map(([k,n])=>`<button class="${page===k?'active':''}" onclick="nav('${k}')">${n}</button>`).join('')}
 function rows(kind){let a=store(kind);return a.length?a.map((x,i)=>`<div class="entry"><small>${escapeHtml(x.date)}</small><p>${escapeHtml(x.text||'')}${x.mood?'Mood: '+escapeHtml(x.mood)+'\n':''}${x.trigger?'Trigger: '+escapeHtml(x.trigger)+'\n':''}${x.spend?'Spending note: '+escapeHtml(x.spend)+'\n':''}${x.strategies?.length?'Coping: '+escapeHtml(x.strategies.join(', '))+'\n':''}${x.helped?'What helped: '+escapeHtml(x.helped)+'\n':''}${x.need?'Next support: '+escapeHtml(x.need):''}${x.answers?x.answers.map(v=>'\n'+escapeHtml(v.q)+'\n'+escapeHtml(v.a)).join('\n'):''}</p>${b('Delete',`del('${kind}',${i})`,'alt')}</div>`).join(''):'<div class="entry">Nothing saved here yet. No pressure to start.</div>'}
 function del(k,i){if(!confirm('Delete this entry permanently?'))return;let a=store(k);a.splice(i,1);put(k,a);render()}
@@ -78,7 +91,7 @@ if(page==='reflect'){s=`<div class="hero"><h3>What's on your heart today?</h3><p
 
 if(page==='mental'){s=`<div class="hero"><div class="eyebrow">A little light for today</div><h3>${escapeHtml(encouragement[encouragementIndex])}</h3><p>${b('Another encouragement','nextEncouragement()','soft')}</p></div><h3>Spending Recovery</h3><div class="grid"><div class="card"><h3>♡ I'm having a spending urge</h3><p>Start with a quick, gentle pause.</p>${b('Help me now',"tool('urge')")}</div><div class="card"><h3>☼ My coping plan</h3><p>Keep what helps close by.</p>${b('Open my plan',"tool('plan')")}</div></div><h3>Emotional Wellness</h3><div class="grid"><div class="card"><h3>〰 Breathing</h3><p>A comfortable rhythm with a countdown.</p>${b('Start breathing',"tool('breathe')")}</div><div class="card"><h3>⌁ Grounding</h3><p>Reconnect with the present moment.</p>${b('Try grounding',"tool('ground')")}</div></div><div id="tool"></div><div class="notice">If you are in immediate danger, call emergency services. In the U.S., call or text 988 for mental health crisis support. This preview is not monitored or a substitute for care.</div>`}
 if(page==='growth'){s=`<div class="hero"><h3>Every step belongs to your story.</h3><p>Celebrate what matters to you, at your own pace.</p>${b('＋ Add a victory','addWin()','soft')}</div><div class="card"><h3>My recovery journeys</h3><p>Track different journeys independently. Dates can be corrected anytime; milestones are never erased.</p><div id="journeys">${journeyList()}</div>${b('＋ Add a recovery journey','addJourney()')}</div><div class="card"><h3>My Token Collection</h3><p>Anniversary and personal milestones, all in one place.</p>${tokenList()}${b('＋ Personal milestone','addPersonalToken()','soft')}</div><div class="card"><h3>Personal goals</h3>${b('＋ Add goal','addGoal()')}<div style="margin-top:12px">${store('goals').map((g,i)=>`<div class="entry"><label style="margin:0"><input type="checkbox" style="width:auto" ${g.done?'checked':''} onchange="goalDone(${i},this.checked)"> ${escapeHtml(g.text)}</label>${b('Delete',`del('goals',${i})`,'alt')}</div>`).join('')||'<p>No goals yet. You choose the pace.</p>'}</div></div><h3>Victories & accomplishments</h3>${rows('wins')}`}
-if(page==='more'){s=`<div class="hero"><h3>Explore at your own pace</h3><p>Everything you need, without the clutter.</p></div><div class="card"><h3>Learn & Explore</h3><p>Spending recovery is at the heart of Becoming.</p>${b('Spending Recovery Library',"openLibrary('spending')")} ${b('Faith & Spirituality',"openLibrary('spiritual')",'soft')}<div id="library"></div></div><div class="card"><h3>My Favorites</h3><p>Resources you have saved for later.</p><div id="favorites">${favoriteList()}</div></div><div class="card"><h3>Personalize Becoming</h3><label><input type="checkbox" style="width:auto" ${settings().simple?'checked':''} onchange="setPref('simple',this.checked)"> Simple View</label><p>Fewer visual effects and a quieter layout.</p></div><div class="card"><h3>Account sync</h3><p>Changes sync when online. If you see a warning, keep this tab open and retry.</p>${b('Retry sync','retrySync()','soft')}<p class="muted">Earlier browser-only entries are not automatically imported. Export a backup from the old version first, then restore it here after confirming the account is working.</p></div><div class="card"><h3>Backup and restore</h3><p>Export a JSON backup of account entries. Backups are not encrypted; keep them private. Restore asks before replacing records and will sync the changes online.</p>${b('Export preview backup','exportBackup()')}<label>Restore a preview backup</label><input type="file" accept=".json,application/json" onchange="importBackup(this)"></div><div class="card"><h3>Delete preview data</h3>${b('Clear all preview entries','clearAll()','alt')}</div><div class="notice">This is a test preview, not a secure production app. Account entries use Supabase with owner-only database policies. No app lock, encrypted exported backups, or live community yet. Avoid entering highly sensitive financial or health information until thoroughly tested.</div>`}
+if(page==='more'){s=`<div class="hero"><h3>Explore at your own pace</h3><p>Everything you need, without the clutter.</p></div><div class="card"><h3>Learn & Explore</h3><p>Spending recovery is at the heart of Becoming.</p>${b('Spending Recovery Library',"openLibrary('spending')")} ${b('Faith & Spirituality',"openLibrary('spiritual')",'soft')}<div id="library"></div></div><div class="card"><h3>My Favorites</h3><p>Resources you have saved for later.</p><div id="favorites">${favoriteList()}</div></div><div class="card"><h3>Personalize Becoming</h3><label><input type="checkbox" style="width:auto" ${settings().simple?'checked':''} onchange="setPref('simple',this.checked)"> Simple View</label><p>Fewer visual effects and a quieter layout.</p></div><div class="card"><h3>Account sync</h3><p>Changes sync when online. If a device conflict or network error occurs, this app keeps an unsynced copy on this device. Export a backup and avoid editing the same section on another device until resolved.</p>${b('Retry unsynced changes','retrySync()','soft')} ${b('Review & merge unsynced changes','reviewUnsyncedChanges()','alt')}<p class="muted">Earlier browser-only entries are not automatically imported. Export a backup from the old version first, then restore it here after confirming the account is working.</p></div><div class="card"><h3>Backup and restore</h3><p>Export a JSON backup of account entries. Backups are not encrypted; keep them private. Restore previews the contents and offers Merge (recommended) or Replace. Any changes will sync to your account when safely saved.</p>${b('Export preview backup','exportBackup()')}<label>Restore a preview backup</label><input type="file" accept=".json,application/json" onchange="importBackup(this)"></div><div class="card"><h3>Delete preview data</h3>${b('Clear all account entries','clearAll()','alt')}</div><div class="notice">This is a test preview, not a secure production app. Account entries use Supabase with owner-only database policies; the safe-save server function must also be installed. No app lock, encrypted backups, or live community yet. Avoid storing highly sensitive financial or health information until end-to-end tests are complete.</div>`}
 el('screen').innerHTML=s;document.body.classList.toggle('simple-view',!!settings().simple)}
 function toggle(x){strategies=strategies.includes(x)?strategies.filter(y=>y!==x):[...strategies,x];document.querySelectorAll('#strategies .chip').forEach(b=>b.classList.toggle('on',strategies.includes(b.textContent)))}
 function chooseMood(x,button){mood=x;document.querySelectorAll('#moods .chip').forEach(y=>y.classList.toggle('on',y===button))}
@@ -105,12 +118,40 @@ function openLibrary(type){el('library').innerHTML=resources[type].map(([title,d
 function addFavorite(type,i){let a=store('favorites'),title=resources[type][i][0];if(!a.some(x=>x.title===title))a.unshift({title,description:resources[type][i][1]});put('favorites',a);el('favorites').innerHTML=favoriteList()}
 function favoriteList(){return store('favorites').map((x,i)=>`<div class="entry"><strong>${escapeHtml(x.title)}</strong><p>${escapeHtml(x.description)}</p>${b('Remove',`removeFavorite(${i})`,'alt')}</div>`).join('')||'<p>No favorites yet.</p>'}
 function removeFavorite(i){let a=store('favorites');a.splice(i,1);put('favorites',a);render()}
-const keys=['checkins','reflections','goals','wins','plans','gratitudes','journeys','personalTokens','favorites','copingTools','urgeLetters','buyDecisions'];function exportBackup(){let obj={type:'soft-landing-preview',version:2,date:new Date().toISOString(),data:Object.fromEntries(keys.map(k=>[k,store(k)]))};let blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='becoming-preview-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-function importBackup(input){let f=input.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{let d;try{d=JSON.parse(r.result);if(d.type!=='soft-landing-preview'||![1,2].includes(d.version)||!d.data||!['checkins','reflections','goals','wins','plans'].every(k=>Array.isArray(d.data[k])))throw Error('Unsupported backup');}catch(e){alert('This is not a valid Becoming preview backup. Nothing was changed.');return}let counts=keys.map(k=>`${k}: ${Array.isArray(d.data[k])?d.data[k].length:0}`).join('\n');if(!confirm('This backup contains:\n'+counts+'\n\nRestore will REPLACE the current preview entries in this browser. Continue?'))return;keys.forEach(k=>put(k,Array.isArray(d.data[k])?d.data[k]:[]));alert('Backup restored locally. Please wait for the sync status to say All changes saved before closing.');render()};r.readAsText(f)}
-function clearAll(){if(!confirm('Delete ALL saved preview entries in this browser? This cannot be undone.'))return;if(!confirm('Last confirmation: clear all Becoming preview entries?'))return;keys.forEach(k=>put(k,[]));render()}
+const keys=['checkins','reflections','goals','wins','plans','gratitudes','journeys','personalTokens','favorites','copingTools','urgeLetters','buyDecisions','overview_week','overview_month','overview_year'];function exportBackup(){
+ const obj={type:'soft-landing-preview',version:2,date:new Date().toISOString(),account:activeUser?.id||null,unsyncedSections:[...cloudPending.keys()],data:Object.fromEntries(keys.map(k=>[k,store(k)]))};
+ const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download='becoming-account-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function mergedRecords(current,imported){
+ const out=current.slice(),seen=new Set(current.map(x=>JSON.stringify(x)));
+ for(const record of imported){const sig=JSON.stringify(record);if(!seen.has(sig)){seen.add(sig);out.push(record)}}
+ return out;
+}
+function importBackup(input){
+ const f=input.files[0];if(!f)return;
+ const r=new FileReader();r.onload=()=>{
+  let d;
+  try{d=JSON.parse(r.result);if(d.type!=='soft-landing-preview'||![1,2].includes(d.version)||!d.data||!['checkins','reflections','goals','wins','plans'].every(k=>Array.isArray(d.data[k]))||keys.some(k=>d.data[k]!==undefined&&!Array.isArray(d.data[k])))throw Error('Unsupported backup')}
+  catch(e){alert('This is not a valid Becoming preview backup. Nothing was changed.');input.value='';return}
+  const counts=keys.filter(k=>Array.isArray(d.data[k])&&d.data[k].length).map(k=>`${k}: ${d.data[k].length}`).join('\n')||'No entries';
+  const choice=prompt('Backup preview:\n'+counts+'\n\nType MERGE to keep existing entries and add missing entries (recommended), REPLACE to replace your account entries, or CANCEL.','MERGE');
+  if(!choice||choice.trim().toUpperCase()==='CANCEL'){input.value='';return}
+  const mode=choice.trim().toUpperCase();if(!['MERGE','REPLACE'].includes(mode)){alert('Nothing changed. Choose MERGE, REPLACE or CANCEL.');input.value='';return}
+  if(mode==='REPLACE'&&!confirm('REPLACE will remove current account entries that are not in this backup, including on synced devices. Are you absolutely sure?')){input.value='';return}
+  if(!confirm(mode==='MERGE'?'Merge these backup entries into your current account? Existing entries will be kept.':'Replace current account entries with this backup?')){input.value='';return}
+  for(const k of keys){const existing=store(k),incoming=Array.isArray(d.data[k])?d.data[k]:[],next=mode==='MERGE'?mergedRecords(existing,incoming):incoming;if(JSON.stringify(existing)!==JSON.stringify(next))put(k,next)}
+  alert('Restore queued. Please check the sync status, then export a fresh backup. If a conflict appears, the local changes are kept until you resolve it.');input.value='';render();
+ };r.onerror=()=>{alert('Could not read that file. Nothing was changed.');input.value=''};r.readAsText(f);
+}
+function clearAll(){
+ if(!confirm('This will clear ALL saved entries in your Becoming account, including records on synced devices. Export a backup first. Continue?'))return;
+ if(!confirm('FINAL CONFIRMATION: permanently clear every section of your account? This cannot be undone after sync.'))return;
+ keys.forEach(k=>put(k,[]));render();
+}
 render();
 
-// Added features remain device-local and optional; this is still a web preview.
+// Added recovery features use account-scoped browser cache and sync to Supabase when connected.
 const originalRender=render;
 const extraTitles={toolbox:'My Recovery Toolbox',letters:'Letters to Myself',beforebuy:'Before You Buy',overviews:'Recovery Overviews'};
 function featureNav(k){if(timer){clearInterval(timer);timer=null}page=k;render();window.scrollTo({top:0,behavior:'auto'})}
@@ -145,29 +186,136 @@ function authScreen(mode='login',message=''){
   document.querySelector('.app').style.display='none';document.querySelector('.bottom').style.display='none';authPanel.style.display='block';
   const register=mode==='signup',reset=mode==='reset';
   authPanel.innerHTML=`<div class="auth-card"><div class="auth-kicker">🌊 Becoming</div><h1>${reset?'Reset password':register?'Create your account':'Welcome back'}</h1><p>Your Spending Recovery Companion</p><p class="auth-sub">${reset?'Choose a new password.':register?'A gentle space to begin again.':'Your journey, your pace.'}</p><form id="auth-form"><label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="email" required ${reset?'disabled':''}><label for="auth-password">${reset?'New password':'Password'}</label><input id="auth-password" type="password" minlength="8" autocomplete="${register?'new-password':'current-password'}" required><button class="btn" type="submit">${reset?'Save new password':register?'Sign up':'Log in'}</button></form><p id="auth-status" role="status">${escapeHtml(message)}</p><div class="auth-links">${reset?'':`<button onclick="authScreen('${register?'login':'signup'}')">${register?'Already have an account? Log in':'Create an account'}</button>`}${!reset?'<button onclick="sendReset()">Forgot password?</button>':''}</div><p class="auth-note">Email confirmation is required. Your saved entries sync with your private account when connected. Keep a backup of previous browser-only entries.</p></div>`;
-  document.getElementById('auth-form').addEventListener('submit',async event=>{event.preventDefault();const email=document.getElementById('auth-email').value.trim(),password=document.getElementById('auth-password').value;authMessage('Please wait…');try{let result;if(reset){result=await supabaseClient.auth.updateUser({password})}else if(register){result=await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}})}else{result=await supabaseClient.auth.signInWithPassword({email,password})}if(result.error)throw result.error;if(reset){authMessage('Password updated.');return}if(register){authMessage('Check your email for the confirmation link, then return to log in.');return}if(result.data?.user)showApp(result.data.user)}catch(e){authMessage(e.message||'Unable to continue. Please try again.')}});
+  document.getElementById('auth-form').addEventListener('submit',async event=>{event.preventDefault();const email=document.getElementById('auth-email').value.trim(),password=document.getElementById('auth-password').value;authMessage('Please wait…');try{let result;if(reset){result=await supabaseClient.auth.updateUser({password})}else if(register){result=await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}})}else{result=await supabaseClient.auth.signInWithPassword({email,password})}if(result.error)throw result.error;if(reset){authMessage('Password updated.');return}if(register){authMessage('Check your email for the confirmation link, then return to log in.');return}if(result.data?.user&&!activeUser)showApp(result.data.user)}catch(e){authMessage(e.message||'Unable to continue. Please try again.')}});
 }
 async function sendReset(){const email=prompt('Enter your account email address:');if(!email)return;try{const r=await supabaseClient.auth.resetPasswordForEmail(email.trim(),{redirectTo:location.origin+location.pathname});if(r.error)throw r.error;authMessage('If that account exists, a password reset email has been sent.')}catch(e){authMessage(e.message||'Unable to send reset email.')}}
 const cloudSections=['checkins','reflections','goals','wins','plans','gratitudes','journeys','personalTokens','favorites','copingTools','urgeLetters','buyDecisions','overview_week','overview_month','overview_year'];
-let cloudReady=false,cloudRows=new Map(),cloudPending=new Map(),cloudSaving=new Set(),cloudFailed=new Set(),cloudEpoch=0;
-function syncStatus(message){let banner=document.getElementById('cloud-sync-status');if(!banner){banner=document.createElement('div');banner.id='cloud-sync-status';banner.setAttribute('role','status');banner.style.cssText='position:fixed;right:12px;bottom:75px;z-index:60;max-width:310px;background:#183d51;color:#fff;border:1px solid #8eb7ba;border-radius:12px;padding:9px 13px;font-size:13px;box-shadow:0 4px 20px #0006';document.body.appendChild(banner)}banner.textContent=message;banner.style.display=activeUser?'block':'none'}
-function syncIndicator(){if(cloudFailed.size)syncStatus('⚠ Some changes are only on this device. Select Retry sync in More & Settings.');else if(cloudPending.size||cloudSaving.size)syncStatus('Saving changes…');else syncStatus('✓ All changes saved to your account')}
-function queueCloudSave(section,records){if(!cloudReady||!activeUser)return;cloudPending.set(section,JSON.parse(JSON.stringify(records)));cloudFailed.delete(section);syncIndicator();flushCloudSection(section)}
-async function flushCloudSection(section){if(cloudSaving.has(section)||!activeUser||!cloudReady)return;const epoch=cloudEpoch;cloudSaving.add(section);syncIndicator();while(cloudPending.has(section)&&epoch===cloudEpoch){const records=cloudPending.get(section);cloudPending.delete(section);try{let error;if(cloudRows.has(section)){({error}=await supabaseClient.from('recovery_records').update({content:records}).eq('id',cloudRows.get(section)).eq('user_id',activeUser.id))}else{const result=await supabaseClient.from('recovery_records').insert({section,content:records,user_id:activeUser.id}).select('id').single();error=result.error;if(!error)cloudRows.set(section,result.data.id)}if(error)throw error;cloudFailed.delete(section)}catch(e){cloudFailed.add(section);cloudPending.set(section,records);console.error('Becoming sync error',e);break}}cloudSaving.delete(section);if(epoch===cloudEpoch)syncIndicator()}
-function retrySync(){for(const section of cloudFailed)flushCloudSection(section);syncIndicator()}
+let cloudReady=false,cloudRows=new Map(),cloudPending=new Map(),cloudSaving=new Set(),cloudFailed=new Set(),cloudBlocked=new Set(),cloudEpoch=0;
+const cloneRecords=records=>JSON.parse(JSON.stringify(records));
+const pendingStorageKey=userId=>'becoming_unsynced_v2_'+userId;
+function persistPending(){
+ if(!activeUser)return false;
+ try{const key=pendingStorageKey(activeUser.id);if(cloudPending.size)localStorage.setItem(key,JSON.stringify(Object.fromEntries(cloudPending)));else localStorage.removeItem(key);return true}
+ catch(e){console.error('Could not preserve unsynced changes in browser storage',e);alert('Your browser storage is full or unavailable. Export a backup now and do not close this tab.');return false}
+}
+function readSavedPending(userId){
+ const rawText=localStorage.getItem(pendingStorageKey(userId));
+ if(!rawText)return new Map();
+ let raw;
+ try{raw=JSON.parse(rawText);if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Invalid offline record');
+  for(const [section,p] of Object.entries(raw)){
+   if(!cloudSections.includes(section)||!p||!Array.isArray(p.records)||!('expected' in p))throw Error('Invalid pending section');
+  }
+  return new Map(Object.entries(raw));
+ }catch(e){console.error('Could not read unsynced browser changes',e);throw Error('An unsynced browser backup could not be read. No local data has been cleared; do not clear browser site data. Export or recover the local copy before continuing.');}
+}
+function syncStatus(message){let banner=document.getElementById('cloud-sync-status');if(!banner){banner=document.createElement('div');banner.id='cloud-sync-status';banner.setAttribute('role','status');banner.style.cssText='position:fixed;right:12px;bottom:75px;z-index:60;max-width:340px;background:#183d51;color:#fff;border:1px solid #8eb7ba;border-radius:12px;padding:9px 13px;font-size:13px;box-shadow:0 4px 20px #0006';document.body.appendChild(banner)}banner.textContent=message;banner.style.display=activeUser?'block':'none'}
+function syncIndicator(){
+ if(cloudBlocked.size)syncStatus('⚠ Duplicate cloud rows detected. Export a backup before editing or syncing those sections.');
+ else if(cloudFailed.size)syncStatus('⚠ Unsynced changes kept here. Export a backup; use Retry or Review & merge in More & Settings.');
+ else if(cloudPending.size||cloudSaving.size)syncStatus('Saving changes… Do not close this tab.');
+ else syncStatus('✓ All changes saved to your account');
+}
+function queueCloudSave(section,records){
+ if(!cloudReady||!activeUser)return false;
+ const existing=cloudPending.get(section);
+ const baseline=cloudRows.get(section);
+ const job={records:cloneRecords(records),expected:existing?existing.expected:(baseline?cloneRecords(baseline.content):null),rowId:existing?existing.rowId:(baseline?.id||null)};
+ cloudPending.set(section,job);
+ if(!persistPending()){if(existing)cloudPending.set(section,existing);else cloudPending.delete(section);return false}
+ cloudFailed.delete(section);
+ syncIndicator();return true;
+}
+async function flushCloudSection(section){
+ if(cloudSaving.has(section)||!activeUser||!cloudReady)return;
+ if(cloudBlocked.has(section)){cloudFailed.add(section);syncIndicator();return}
+ const epoch=cloudEpoch;const userId=activeUser.id;cloudSaving.add(section);syncIndicator();
+ while(cloudPending.has(section)&&epoch===cloudEpoch&&activeUser?.id===userId){
+  const job=cloudPending.get(section);
+  try{
+   // A database transaction compares the original JSON and updates it only if nobody else changed it.
+   // No existing user records are deleted or overwritten when a conflict is detected.
+   const {data,error}=await supabaseClient.rpc('becoming_save_section',{p_section:section,p_content:job.records,p_expected:job.expected,p_row_id:job.rowId});
+   if(error)throw error;
+   const row=data?.[0];if(!row?.record_id)throw Error('Safe-save returned no record ID.');
+   if(epoch!==cloudEpoch||activeUser?.id!==userId)break;
+   cloudRows.set(section,{id:row.record_id,content:cloneRecords(job.records)});
+   if(cloudPending.get(section)===job){cloudPending.delete(section);cloudFailed.delete(section)}
+   else {const newer=cloudPending.get(section);newer.rowId=row.record_id;newer.expected=cloneRecords(job.records)}
+   persistPending();
+  }catch(e){
+   if(epoch===cloudEpoch&&activeUser?.id===userId){cloudFailed.add(section);console.error('Becoming safe-sync error',e);persistPending()}
+   break;
+  }
+ }
+ cloudSaving.delete(section);if(epoch===cloudEpoch)syncIndicator();
+}
+function retrySync(){if(!cloudPending.size){syncIndicator();return}for(const section of cloudPending.keys())flushCloudSection(section);syncIndicator()}
+async function reviewUnsyncedChanges(){
+ if(!cloudReady||!activeUser||!cloudPending.size){alert('There are no unsynced changes to review.');return}
+ if(cloudSaving.size){alert('Please let the current save finish before reviewing.');return}
+ const sections=[...cloudPending.keys()];
+ if(!confirm('Before reviewing conflicts, export a backup from More & Settings. The review can merge remote and local entries, but deletions might reappear and edited entries may be duplicated. Continue?'))return;
+ const uid=activeUser.id,epoch=cloudEpoch;
+ for(const section of sections){
+  if(cloudBlocked.has(section)){alert('The section '+section+' has duplicate cloud rows. Nothing was overwritten. Export a backup and contact the project administrator.');continue}
+  const job=cloudPending.get(section);if(!job)continue;
+  try{
+   const {data,error}=await supabaseClient.from('recovery_records').select('id,content').eq('user_id',uid).eq('section',section).limit(2);
+   if(error)throw error;if(epoch!==cloudEpoch||activeUser?.id!==uid)return;
+   if(data.length>1)throw Error('More than one cloud row exists for this section.');
+   const remote=data[0],serverRecords=remote?.content||[];
+   if(!Array.isArray(serverRecords))throw Error('Cloud data has an unexpected format.');
+   const merged=mergedRecords(serverRecords,job.records);
+   if(!confirm('Section: '+section+'\nCloud entries: '+serverRecords.length+'\nUnsynced local entries: '+job.records.length+'\nResult after merge: '+merged.length+'\n\nMerge both sets? This keeps both differing versions and may restore deleted entries. Select Cancel to leave local changes untouched.'))continue;
+   const updated={records:merged,expected:remote?cloneRecords(serverRecords):null,rowId:remote?.id||null};
+   const old=cloudPending.get(section);cloudPending.set(section,updated);
+   if(!persistPending()){cloudPending.set(section,old);continue}
+   try{localStorage.setItem(storageKey(section),JSON.stringify(merged))}
+   catch(e){cloudPending.set(section,old);persistPending();throw e}
+   cloudFailed.delete(section);flushCloudSection(section);
+  }catch(e){cloudFailed.add(section);console.error('Review could not safely merge '+section,e);alert('Could not safely review '+section+': '+(e.message||e)+'. Your local changes remain saved on this device.')}
+ }
+ render();syncIndicator();
+}
 async function showApp(user){
- const epoch=++cloudEpoch;activeUser=user;cloudReady=false;cloudRows.clear();cloudPending.clear();cloudFailed.clear();cloudSaving.clear();authPanel.style.display='block';document.querySelector('.app').style.display='none';document.querySelector('.bottom').style.display='none';authPanel.innerHTML='<div class="auth-card"><h1>🌊 Becoming</h1><p>Loading your private records…</p><p id="auth-status" role="status"></p></div>';
+ const epoch=++cloudEpoch;activeUser=user;cloudReady=false;cloudRows.clear();cloudPending.clear();cloudFailed.clear();cloudBlocked.clear();cloudSaving.clear();
+ authPanel.style.display='block';document.querySelector('.app').style.display='none';document.querySelector('.bottom').style.display='none';
+ authPanel.innerHTML='<div class="auth-card"><h1>🌊 Becoming</h1><p>Loading your private records…</p><p id="auth-status" role="status"></p></div>';
  try{
+  const savedPending=readSavedPending(user.id);
   const {data,error}=await supabaseClient.from('recovery_records').select('id,section,content').eq('user_id',user.id).limit(1000);
   if(error)throw error;if(epoch!==cloudEpoch)return;
-  // Load the cloud copy into a dedicated cache; never overwrite older browser-only records.
-  const bySection=new Map();for(const row of data){if(!cloudSections.includes(row.section)||!Array.isArray(row.content))continue;const prior=bySection.get(row.section)||[];bySection.set(row.section,prior.concat(row.content));if(!cloudRows.has(row.section))cloudRows.set(row.section,row.id)}
-  for(const section of cloudSections)localStorage.setItem(storageKey(section),JSON.stringify(bySection.get(section)||[]));
+  if(data.length===1000)throw Error('Account data exceeds the safe load limit. No records were changed.');
+  const bySection=new Map(),rowCounts=new Map();
+  for(const row of data){
+   if(!cloudSections.includes(row.section)||!Array.isArray(row.content))continue;
+   const prior=bySection.get(row.section)||[];bySection.set(row.section,prior.concat(row.content));
+   rowCounts.set(row.section,(rowCounts.get(row.section)||0)+1);
+   if(rowCounts.get(row.section)===1)cloudRows.set(row.section,{id:row.id,content:cloneRecords(row.content)});
+   else cloudBlocked.add(row.section);
+  }
+  for(const section of cloudSections){
+   const pending=savedPending.get(section);
+   if(pending){
+    cloudPending.set(section,pending);cloudFailed.add(section);
+    // An unsynced record is more recent than the last synced cache: do not discard it on reload.
+    localStorage.setItem(storageKey(section),JSON.stringify(pending.records));
+   }else localStorage.setItem(storageKey(section),JSON.stringify(bySection.get(section)||[]));
+  }
   cloudReady=true;authPanel.style.display='none';document.querySelector('.app').style.display='grid';document.querySelector('.bottom').style.display='';page='home';render();syncIndicator();
- }catch(e){cloudReady=false;authMessage('Could not safely load your records: '+(e.message||e)+'. No data has been changed.');}
+  if(savedPending.size)alert('Earlier unsynced changes were recovered on this device. Export a backup first, then retry syncing or review and merge a conflict in More & Settings.');
+  else if(cloudBlocked.size)alert('Duplicate cloud records need review before editing those sections. Export a backup first.');
+ }catch(e){cloudReady=false;authMessage('Could not safely load your records: '+(e.message||e)+'. No data has been changed. Please refresh to retry.');}
 }
-
-async function signOut(){if(cloudPending.size||cloudSaving.size||cloudFailed.size){alert('You have changes that are not synced. Retry sync before signing out.');return}const {error}=await supabaseClient.auth.signOut();if(error){alert(error.message);return}cloudEpoch++;cloudReady=false;activeUser=null;syncStatus('');authScreen('login')}
+async function signOut(){
+ if(cloudPending.size||cloudSaving.size||cloudFailed.size){alert('Some changes are not synced. Export a backup and retry sync before signing out.');return}
+ const {error}=await supabaseClient.auth.signOut();if(error){alert(error.message);return}
+ cloudEpoch++;cloudReady=false;activeUser=null;syncStatus('');authScreen('login');
+}
+window.addEventListener('beforeunload',event=>{if(cloudPending.size||cloudSaving.size){event.preventDefault();event.returnValue=''}});
+window.addEventListener('online',()=>{if(activeUser&&cloudPending.size)retrySync()});
+window.addEventListener('storage',event=>{if(activeUser&&event.key===pendingStorageKey(activeUser.id)&&cloudReady){syncStatus('⚠ Another tab has changed unsynced data. Export a backup and refresh before editing further.')}});
 async function initAuth(){authScreen('login','Connecting securely…');try{if(!window.supabase?.createClient)throw Error('Authentication library did not load. Check your internet connection.');supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session?.user)showApp(data.session.user);else authScreen('login');supabaseClient.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){authScreen('reset');return}if(event==='SIGNED_IN'&&session?.user&&!activeUser)showApp(session.user);if(event==='SIGNED_OUT'&&activeUser){activeUser=null;authScreen('login')}})}catch(e){authScreen('login','Connection unavailable: '+e.message)}}
 initAuth();
 
