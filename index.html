@@ -477,7 +477,7 @@ function polishPage(){
  const screen=el('screen');if(!screen)return;
  if(!['home','spending'].includes(page)){
   const hero=screen.querySelector('.hero');
-  if(hero){hero.classList.add('coastal-page-hero');hero.insertAdjacentHTML('afterbegin',`<p class="coastal-page-kicker">✦ ${escapeHtml(coastalPageTags[page]||'YOUR BECOMING JOURNEY')}</p><div class="coastal-page-wave" aria-hidden="true">〰</div>`)}
+  if(hero){hero.classList.add('coastal-page-hero');hero.insertAdjacentHTML('afterbegin',`<p class="coastal-page-kicker">✦ ${escapeHtml(coastalPageTags[page]||'YOUR BECOMING JOURNEY')}</p>Remove unwanted pink header decorations`)}
  }
  if(page==='more'){
   const status=el('inline-sync-status');
