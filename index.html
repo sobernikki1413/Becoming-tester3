@@ -399,7 +399,20 @@ function importBackup(input){
 function clearAll(){
  if(!confirm('This will clear ALL saved entries in your Becoming account, including records on synced devices. Export a backup first. Continue?'))return;
  if(!confirm('FINAL CONFIRMATION: permanently clear every section of your account? This cannot be undone after sync.'))return;
- keys.forEach(k=>put(k,[]));render();
+ if(cloudPending.size||cloudSaving.size||cloudFailed.size||cloudBlocked.size){
+  alert('Some account changes are still syncing or need review. Export a backup and resolve them before clearing data.');
+  return;
+ }
+ let failedSection='';
+ for(const k of keys){
+  if(!put(k,[])){failedSection=k;break}
+ }
+ render();
+ if(failedSection){
+  alert('Clearing stopped at '+failedSection+'. Earlier sections may already be cleared or queued for sync. Export a backup and review the sync status before doing anything else.');
+ }else{
+  alert('Clear requests were queued. Check the sync status before closing this tab. Cloud deletion is not complete until syncing finishes.');
+ }
 }
 render();
 
