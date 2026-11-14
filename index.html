@@ -428,7 +428,7 @@ const originalRender=render;
 const extraTitles={toolbox:'My Recovery Toolbox',letters:'Letters to Myself',beforebuy:'Before You Buy',overviews:'Recovery Overviews',support:'Support Becoming',spirituality:'Faith & Spirituality',creator:'Meet Nikki — The Heart Behind Becoming'};
 function featureNav(k){if(timer){clearInterval(timer);timer=null}page=k;render();window.scrollTo({top:0,behavior:'auto'})}
 function safeValue(id){return el(id)?.value?.trim()||''}
-function saveExtra(k,record){const a=store(k);a.unshift({...record,date:now()});put(k,a);render()}
+function saveExtra(k,record){const a=store(k);a.unshift({...record,date:now()});if(put(k,a))render()}
 function editExtra(k,i,field){editRecord(k,i)}
 function extraRows(k,format){const a=store(k);return a.length?a.map((x,i)=>`<div class="entry"><small>${escapeHtml(x.date)}</small>${format(x)}<div class="feature-links">${b('Edit',`editExtra('${k}',${i},'${k==='copingTools'?'name':k==='urgeLetters'?'text':k==='buyDecisions'?'item':'reflection'}')`,'alt')} ${b('Delete',`del('${k}',${i})`,'alt')}</div></div>`).join(''):'<p class="muted">Nothing recorded yet. You can start whenever you wish.</p>'}
 function journeyOptions(){const a=store('journeys');return ['Spending Recovery',...a.map(j=>j.name)].filter((x,i,arr)=>arr.indexOf(x)===i).map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('')}
