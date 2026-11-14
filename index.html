@@ -529,16 +529,19 @@ function editRecord(section,index){
   if(!validDate(date)){alert('Choose a valid date.');return}
   if(date!==initial)updated.date=section==='journeys'||section==='personalTokens'?date:date+'T12:00:00';
   const next=store(section);next[index]=updated;
+  if(!put(section,next))return;
+  let linksUpdated=true;
   if(section==='journeys'&&entry.name!==updated.name){
    // Prevent accidental loss of a letter's journey association after a rename.
    for(const relatedSection of ['urgeLetters','personalTokens']){
     const related=store(relatedSection);if(related.some(x=>x.journey===entry.name)){
      const renamed=related.map(x=>x.journey===entry.name?{...x,journey:updated.name}:x);
-     put(relatedSection,renamed);
+     if(!put(relatedSection,renamed))linksUpdated=false;
     }
    }
   }
-  put(section,next);dialog.close();render();
+  dialog.close();render();
+  if(!linksUpdated)alert('Your journey was saved, but some linked letters or tokens were not updated. Please review those entries.');
  };
  dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
 }
