@@ -392,8 +392,8 @@ function importBackup(input){
   const mode=choice.trim().toUpperCase();if(!['MERGE','REPLACE'].includes(mode)){alert('Nothing changed. Choose MERGE, REPLACE or CANCEL.');input.value='';return}
   if(mode==='REPLACE'&&!confirm('REPLACE will remove current account entries that are not in this backup, including on synced devices. Are you absolutely sure?')){input.value='';return}
   if(!confirm(mode==='MERGE'?'Merge these backup entries into your current account? Existing entries will be kept.':'Replace current account entries with this backup?')){input.value='';return}
-  for(const k of keys){const existing=store(k),incoming=Array.isArray(d.data[k])?d.data[k]:[],next=mode==='MERGE'?mergedRecords(existing,incoming):incoming;if(JSON.stringify(existing)!==JSON.stringify(next))put(k,next)}
-  alert('Restore queued. Please check the sync status, then export a fresh backup. If a conflict appears, the local changes are kept until you resolve it.');input.value='';render();
+  let restoreFailure=false;for(const k of keys){const existing=store(k),incoming=Array.isArray(d.data[k])?d.data[k]:[],next=mode==='MERGE'?mergedRecords(existing,incoming):incoming;if(JSON.stringify(existing)!==JSON.stringify(next)&&!put(k,next)){restoreFailure=true;break}}
+  alert(restoreFailure?'Restore stopped because a section could not be saved locally. Some earlier sections may have changed. Export a backup and review sync status before retrying.':'Restore queued. Please check the sync status, then export a fresh backup. If a conflict appears, the local changes are kept until you resolve it.');input.value='';render();
  };r.onerror=()=>{alert('Could not read that file. Nothing was changed.');input.value=''};r.readAsText(f);
 }
 function clearAll(){
