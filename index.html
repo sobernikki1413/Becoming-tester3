@@ -725,6 +725,54 @@ window.addEventListener('beforeunload',event=>{if(cloudPending.size||cloudSaving
 window.addEventListener('online',()=>{if(activeUser&&cloudPending.size)retrySync()});
 window.addEventListener('storage',event=>{if(activeUser&&event.key===pendingStorageKey(activeUser.id)&&cloudReady){syncStatus('⚠ Another tab has changed unsynced data. Export a backup and refresh before editing further.')}});
 async function initAuth(){authScreen('login','Connecting securely…');try{if(!window.supabase?.createClient)throw Error('Authentication library did not load. Check your internet connection.');supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session?.user)showApp(data.session.user);else authScreen('login');supabaseClient.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){authScreen('reset');return}if(event==='SIGNED_IN'&&session?.user&&!activeUser)showApp(session.user);if(event==='SIGNED_OUT'&&activeUser){activeUser=null;authScreen('login')}})}catch(e){authScreen('login','Connection unavailable: '+e.message)}}
+// Optional, once-per-device quick start for each signed-in account.
+function closeQuickStartGuide(){
+  const dialog=document.getElementById('becoming-quick-start');
+  if(dialog?.open)dialog.close();
+}
+function openQuickStartGuide(){
+  if(!activeUser||!cloudReady)return;
+  const existing=document.getElementById('becoming-quick-start');
+  if(existing){if(!existing.open)existing.showModal();return}
+  const dialog=document.createElement('dialog');
+  dialog.id='becoming-quick-start';
+  dialog.className='edit-dialog';
+  dialog.setAttribute('aria-labelledby','quick-start-heading');
+  dialog.innerHTML=`<h2 id="quick-start-heading">Welcome to Becoming 🌊</h2>
+    <p>This is your space to explore at your own pace. Here's where to begin:</p>
+    <ol style="line-height:1.65;padding-left:23px">
+      <li><strong>Help Me Now:</strong> Find breathing, grounding, spending-urge support, and your coping plan from Home.</li>
+      <li><strong>Spending:</strong> Explore tools for pausing before purchases and understanding triggers.</li>
+      <li><strong>Reflect:</strong> Write in your journal, or use Daily Check-In whenever you choose.</li>
+      <li><strong>My Growth:</strong> Track personal victories, goals, and milestones.</li>
+    </ol>
+    <p class="muted">Everything is optional. You can reopen this guide from More &amp; Settings.</p>
+    <div class="feature-links">
+      <button type="button" class="btn alt" onclick="closeQuickStartGuide()">Skip for now</button>
+      <button type="button" class="btn soft" onclick="closeQuickStartGuide();nav('mental')">Explore support</button>
+    </div>`;
+  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+  document.body.appendChild(dialog);
+  dialog.showModal();
+}
+const renderBeforeQuickStart=render;
+render=function(){
+  renderBeforeQuickStart();
+  if(!activeUser||!cloudReady)return;
+  if(page==='more'){
+    el('screen').insertAdjacentHTML('afterbegin',
+      `<div class="card"><h3>Quick Start Guide</h3><p>Need a refresher? Revisit the short introduction anytime.</p>${b('Open Quick Start Guide','openQuickStartGuide()','soft')}</div>`);
+  }
+  if(page==='home'){
+    const key='becoming_quickstart_seen_v1_'+activeUser.id;
+    try{
+      if(!localStorage.getItem(key)){
+        localStorage.setItem(key,'1');
+        openQuickStartGuide();
+      }
+    }catch(e){console.warn('Quick Start preference unavailable',e)}
+  }
+};
 initAuth();
 
 </script></body></html>
