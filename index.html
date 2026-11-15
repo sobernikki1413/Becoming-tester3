@@ -489,6 +489,32 @@ body{background:radial-gradient(ellipse at 96% 12%,#6f426e 0%,transparent 36%),r
  #screen .growth-layout>.growth-wins{grid-area:wins}
  #screen .growth-layout>.growth-journeys .card,#screen .growth-layout>.growth-goals .card{height:100%}
 }
+
+/* LIVE Ocean photography pass: replace flat illustration with a licensed,
+   high-resolution photographic seascape on actual application headers. */
+#screen .hero,
+#screen .more-layout>.hero,
+#screen .sanctuary-hero,
+#screen .coastal-page-hero{
+ background-image:
+ linear-gradient(90deg,rgba(5,21,39,.88) 0%,rgba(8,29,47,.62) 43%,rgba(42,23,61,.16) 100%),
+ url('https://images.unsplash.com/photo-1723368343104-d437321a67b5?auto=format&fit=crop&w=2400&q=85')!important;
+ background-size:cover!important;
+ background-position:center 50%!important;
+}
+#screen .hero::before{pointer-events:none}
+#screen .sanctuary-hero::before,
+#screen .spending-sanctuary::before,
+#screen .coastal-page-hero::before{
+ background:linear-gradient(90deg,rgba(6,21,40,.78),rgba(12,30,52,.38) 53%,transparent 100%)!important;
+}
+#screen .hero h3,#screen .sanctuary-hero h3,#screen .coastal-page-hero h3{text-shadow:0 3px 12px #06162cbd}
+#screen .hero{border-color:#e8afc5a8}
+@media(max-width:650px){
+ #screen .hero,#screen .sanctuary-hero,#screen .coastal-page-hero{
+ background-position:55% center!important;
+ }
+}
 </style></head><body><div class="app" style="display:none"><aside><h1>🌊 Becoming</h1><p>Your Spending Recovery Companion</p><nav id="side"></nav></aside><main><h2 id="title">Welcome to Becoming</h2><div id="screen"></div><p class="foot">BECOMING TEST PREVIEW • Signed-in entries sync with your private Supabase account when online. Check the sync indicator before closing. Keep backups, especially before importing earlier entries. Not a substitute for professional care.</p></main></div><nav class="bottom" id="bottom" style="display:none"></nav><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 let activeUser=null;let becomingScholarshipAdmin=false;const encouragement=['You deserve peace, even on difficult days.','You can pause without giving up.','Your progress is bigger than one moment.','You are worthy of kindness, including your own.'];let encouragementIndex=new Date().getDate()%encouragement.length;let journalMode='blank',urgeNeed='',urgeStage=0;const journalPrompts=["What feelings have been coming up for me today?","What stirred an urge to spend, and what did I need in that moment?","What helped me feel safe or grounded today?","When did I choose something kind for myself?","What did I learn about my spending triggers?","What is one small win I want to remember?","What would support look like for me tomorrow?","What am I carrying that I can put down for tonight?","How did I honor a personal boundary today?","What brought me even a moment of peace?"];let journalPromptIndex=Math.floor(Date.now()/86400000)%journalPrompts.length;let reflectionDraft='';const settings=()=>{try{return JSON.parse(localStorage.getItem('becoming_preferences_'+(activeUser?.id||'signed_out'))||'{}')}catch{return {}}};function setPref(k,v){localStorage.setItem('becoming_preferences_'+(activeUser?.id||'signed_out'),JSON.stringify({...settings(),[k]:v}));render()}const tabs=[['home','⌂ Home'],['spending','♡ Spending'],['mental','☼ Wellness'],['reflect','✎ Reflect'],['growth','✿ My Growth'],['history','▤ Check-In History'],['more','☼ More']];let page='home',mood='',strategies=[],timer=null;const storageKey=k=>'becoming_cloud_cache_v1_'+(activeUser?.id||'signed_out')+'_'+k;
 const store=k=>{try{return JSON.parse(localStorage.getItem(storageKey(k))||'[]')}catch{return []}};
