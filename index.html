@@ -280,6 +280,19 @@ main .card:not(.personal-practice-card){overflow-wrap:anywhere}
     scroll-snap-align:start;
   }
 }
+
+/* Becoming signature anniversary collection - does not modify saved records */
+.anniversary-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}
+.anniversary-card{background:#143749;border:1px solid #a88777;padding:19px 12px}
+.becoming-coin{height:190px;width:190px;max-width:100%;aspect-ratio:1/1;border-radius:50%;margin:0 auto 10px;display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:18px 12px 16px;box-sizing:border-box;background:radial-gradient(circle at 34% 22%,#2e8098 0%,#114565 52%,#09243d 83%);border:8px double #d9a88d;box-shadow:inset 0 0 0 3px #edc3a1,inset 0 0 18px #031421,0 8px 20px #0006;color:#ffe4d1}
+.coin-top{font:700 15px Georgia,serif;letter-spacing:.17em;color:#ffe4cc}
+.coin-wave{width:90%;height:87px;flex-shrink:1}
+.coin-label{font:800 19px Georgia,serif;letter-spacing:.06em;text-align:center;color:#ffdfc6}
+.anniversary-dialog{max-width:610px;width:calc(100vw - 26px)}
+.coin-back{max-width:500px;min-height:235px;margin:12px auto;padding:25px 28px;border:7px double #d9a88d;border-radius:24px;background:linear-gradient(145deg,#10364e,#0a2037);color:#ffe8dc;text-align:center;box-sizing:border-box}
+.coin-back>span{display:block;font:700 16px Georgia,serif;letter-spacing:.15em;color:#e8c1a9}
+.coin-back p{font-size:16px!important;line-height:1.8!important;white-space:pre-line;color:#fff0e8!important}
+@media(max-width:650px){.anniversary-grid{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}.becoming-coin{width:165px;height:165px}.coin-wave{height:74px}.coin-top{font-size:12px}.coin-label{font-size:17px}.coin-back{padding:18px 17px}}
 </style></head><body><div class="app" style="display:none"><aside><h1>🌊 Becoming</h1><p>Your Spending Recovery Companion</p><nav id="side"></nav></aside><main><h2 id="title">Welcome to Becoming</h2><div id="screen"></div><p class="foot">BECOMING TEST PREVIEW • Signed-in entries sync with your private Supabase account when online. Check the sync indicator before closing. Keep backups, especially before importing earlier entries. Not a substitute for professional care.</p></main></div><nav class="bottom" id="bottom" style="display:none"></nav><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 let activeUser=null;const encouragement=['You deserve peace, even on difficult days.','You can pause without giving up.','Your progress is bigger than one moment.','You are worthy of kindness, including your own.'];let encouragementIndex=new Date().getDate()%encouragement.length;let journalMode='blank',urgeNeed='',urgeStage=0;const journalPrompts=["What feelings have been coming up for me today?","What stirred an urge to spend, and what did I need in that moment?","What helped me feel safe or grounded today?","When did I choose something kind for myself?","What did I learn about my spending triggers?","What is one small win I want to remember?","What would support look like for me tomorrow?","What am I carrying that I can put down for tonight?","How did I honor a personal boundary today?","What brought me even a moment of peace?"];let journalPromptIndex=Math.floor(Date.now()/86400000)%journalPrompts.length;let reflectionDraft='';const settings=()=>{try{return JSON.parse(localStorage.getItem('becoming_preferences_'+(activeUser?.id||'signed_out'))||'{}')}catch{return {}}};function setPref(k,v){localStorage.setItem('becoming_preferences_'+(activeUser?.id||'signed_out'),JSON.stringify({...settings(),[k]:v}));render()}const tabs=[['home','⌂ Home'],['spending','♡ Spending'],['mental','☼ Wellness'],['reflect','✎ Reflect'],['growth','✿ My Growth'],['history','▤ Check-In History'],['more','☼ More']];let page='home',mood='',strategies=[],timer=null;const storageKey=k=>'becoming_cloud_cache_v1_'+(activeUser?.id||'signed_out')+'_'+k;
 const store=k=>{try{return JSON.parse(localStorage.getItem(storageKey(k))||'[]')}catch{return []}};
@@ -370,25 +383,51 @@ const a=store('personalTokens');a.unshift({name,date,journey});if(put('personalT
 function toggleTokenCustom(){const x=el('newTokenCustomWrap');if(x)x.hidden=el('newTokenType')?.value!=='custom'}
 function tokenCreator(){return `<div class="card"><h3>Choose a moment worth celebrating</h3><p>Pick a ready-made token or name a moment that's entirely yours. You choose the date.</p><div class="token-details"><div class="wide"><label for="newTokenType">Choose a token</label><select id="newTokenType" onchange="toggleTokenCustom()">${standardTokenNames.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('')}<option value="custom">✦ Create my own token</option></select></div><div class="wide" id="newTokenCustomWrap" hidden><label for="newTokenCustom">My token title</label><input id="newTokenCustom" maxlength="140" placeholder="A milestone that's meaningful to me"></div><div><label for="newTokenDate">Date to remember</label><input id="newTokenDate" type="date" value="${new Date().toLocaleDateString('en-CA')}"></div><div><label for="newTokenJourney">Recovery journey (optional)</label><select id="newTokenJourney"><option value="">Personal / any journey</option>${journeyOptions()}</select></div></div><p>${b('Save my token','addPersonalToken()','soft')}</p></div>`}
 function dateLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function tokenList(){const mine=store('personalTokens');const personal=mine.length?`<div class="token-grid">${mine.map((x,i)=>`<div class="token"><div class="medal">✦</div><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.date||'')} ${x.journey? '· '+escapeHtml(x.journey):''}</small><div class="token-actions">${b('Edit',`editRecord('personalTokens',${i})`,'alt')} ${b('Delete',`del('personalTokens',${i})`,'alt')}</div></div>`).join('')}</div>`:'<p>No personal tokens saved yet. You get to decide what deserves celebration.</p>';
- const auto=[];for(const [i,j] of store('journeys').entries()){
-  const start=new Date(j.date+'T12:00:00');if(!Number.isFinite(start.getTime()))continue;
-  // Early milestones remain; anniversary years use calendar dates, not an assumed 365-day year.
-  for(const [days,label] of [[1,'One day of becoming'],[7,'One week of courage'],[30,'One month of progress'],[90,'Three months of growth'],[180,'Six months of showing up']]){
-   const when=new Date(start.getTime()+days*86400000);
-   if(when<=new Date())auto.push({name:j.name+' · '+label,date:dateLocal(when),i});
-  }
-  for(const years of [1,2,3,4,...Array.from({length:20},(_,n)=>(n+1)*5)]){
-   const y=start.getFullYear()+years;
-   // For Feb 29 starts in non-leap years, celebrate on Feb 28 instead of jumping to March.
-   const day=Math.min(start.getDate(),new Date(y,start.getMonth()+1,0).getDate());
-   const when=new Date(y,start.getMonth(),day,12);
-   if(when<=new Date())auto.push({name:j.name+' · '+(years===1?'One year':years+' years')+' of becoming',date:dateLocal(when),i});
+const anniversaryMilestones=[{"id":"24 HOURS","days":1,"text":"For today, I chose myself. Twenty-four hours of courage, honesty, and new beginnings. This is where my Becoming begins."},{"id":"1 WEEK","days":7,"text":"Seven days. Seven chances to choose myself. Through the waves of uncertainty, I kept moving forward. I am stronger than my urges, braver than my fears, and worthy of the life I am becoming."},{"id":"30 DAYS","days":30,"text":"Thirty days. A thousand little acts of courage. I have faced waves I once thought would pull me under, yet here I stand. I am learning to trust myself, honor my progress, and embrace the person I am becoming."},{"id":"60 DAYS","days":60,"text":"Sixty days. I am no longer where I began.\n\nThrough calm waters and unexpected storms, I have continued to find my way.\n\nEvery choice, every lesson, and every moment of courage is shaping the life I deserve.\n\nI am not just recovering. I am becoming."},{"id":"90 DAYS","days":90,"text":"Ninety days. Three months of choosing a different path.\n\nI have weathered storms, faced uncomfortable truths, and discovered strength I didn't know I possessed.\n\nI am learning that healing isn't about becoming perfect. It's about becoming free.\n\nI am worthy of every beautiful thing waiting beyond these waves."},{"id":"6 MONTHS","months":6,"text":"Six months. Half a year of courage, growth, and becoming.\n\nI have learned to navigate waters that once frightened me. I have discovered that strength isn't always loud, and healing doesn't always happen in a straight line.\n\nI honor the person who began this journey, the person who kept going, and the person I am becoming.\n\nI am not defined by my past. I am empowered by my transformation."},{"id":"9 MONTHS","months":9,"text":"Nine months. I have grown in ways I never imagined. Through changing tides and uncertain waters, I have learned that my strength is not measured by the absence of struggle, but by the courage to keep choosing myself. I have given myself permission to heal, to grow, and to become someone I am proud of. I am creating a life that feels like freedom, one choice at a time."},{"id":"1 YEAR","months":12,"text":"One year. A thousand waves. One extraordinary journey. I have weathered storms, discovered my strength, and learned to trust the person I am becoming. I honor my past. I celebrate my growth. My future is mine to create."},{"id":"18 MONTHS","months":18,"text":"Eighteen months. A journey of courage, healing, and transformation. I have learned that even the strongest waves eventually settle. Through every challenge, I have discovered more of myself. I trust my strength. I honor my journey. I am becoming the life I once dreamed of."},{"id":"2 YEARS","months":24,"text":"Two years. Two journeys around the sun. Countless moments of courage. I have learned to navigate life's changing tides without losing sight of myself. I am building a life rooted in strength, honesty, and self-respect. I am no longer simply dreaming of change. I am living my Becoming."}];
+function anniversaryDate(startIso, milestone){
+ const start=new Date(startIso+"T12:00:00");
+ if(!Number.isFinite(start.getTime()))return null;
+ if(milestone.days) return new Date(start.getTime()+milestone.days*86400000);
+ const y=start.getFullYear(),mo=start.getMonth()+milestone.months;
+ const last=new Date(y,mo+1,0).getDate();
+ return new Date(y,mo,Math.min(start.getDate(),last),12);
+}
+
+function coinFront(label){
+ return `<div class="becoming-coin" role="img" aria-label="Becoming ocean-wave anniversary chip, ${escapeHtml(label)}"><div class="coin-top">BECOMING</div><svg class="coin-wave" viewBox="0 0 190 106" aria-hidden="true" focusable="false"><defs><linearGradient id="coin-wave-fill" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#cce8e4"/><stop offset=".5" stop-color="#4ca6b7"/><stop offset="1" stop-color="#0c3754"/></linearGradient></defs><path fill="url(#coin-wave-fill)" d="M4 82 C24 60 49 59 67 66 C84 73 96 73 106 62 C115 50 114 40 105 30 C94 18 81 19 73 25 C94 -1 137 -5 160 15 C179 31 184 60 169 79 C151 101 119 104 93 94 C62 83 38 86 4 82Z"/><path d="M60 64 C88 76 114 68 128 46 C138 29 128 17 115 11 C137 11 157 30 154 51 C152 78 120 88 96 82" stroke="#eac3ac" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M11 82 C39 75 62 77 85 88" stroke="#b8e1df" stroke-width="3" fill="none" stroke-linecap="round"/></svg><strong class="coin-label">${escapeHtml(label)}</strong></div>`;
+}
+
+function openAnniversaryChip(id){
+ const chip=anniversaryMilestones.find(x=>x.id===id);
+ if(!chip)return;
+ document.getElementById("becoming-anniversary-dialog")?.remove();
+ const dialog=document.createElement("dialog");
+ dialog.id="becoming-anniversary-dialog";
+ dialog.className="edit-dialog anniversary-dialog";
+ dialog.setAttribute("aria-label",chip.id+" anniversary chip affirmation");
+ dialog.innerHTML=`<h3>${escapeHtml(chip.id)} · Your keepsake</h3><div class="coin-back"><span>BECOMING</span><p>${escapeHtml(chip.text)}</p></div><p class="muted">Your full affirmation is shown here so every word stays readable.</p><button type="button" class="btn soft" id="close-anniversary-chip">Close</button>`;
+ document.body.appendChild(dialog);
+ dialog.querySelector("#close-anniversary-chip").onclick=()=>dialog.close();
+ dialog.addEventListener("close",()=>dialog.remove(),{once:true});
+ dialog.showModal();
+}
+
+function tokenList(){
+ const mine=store("personalTokens");
+ const personal=mine.length?`<div class="token-grid">${mine.map((x,i)=>`<div class="token"><div class="medal">✦</div><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.date||"")} ${x.journey?"· "+escapeHtml(x.journey):""}</small><div class="token-actions">${b("Edit",`editRecord('personalTokens',${i})`,"alt")} ${b("Delete",`del('personalTokens',${i})`,"alt")}</div></div>`).join("")}</div>`:"<p>No personal tokens saved yet. You get to decide what deserves celebration.</p>";
+ const earned=[];
+ const today=dateLocal(new Date());
+ for(const [i,j] of store("journeys").entries()){
+  if(!validDate(j.date))continue;
+  for(const chip of anniversaryMilestones){
+   const when=anniversaryDate(j.date,chip);
+   if(when&&dateLocal(when)<=today)earned.push({...chip,date:dateLocal(when),journey:j.name,index:i});
   }
  }
- const anniversaries=auto.length?`<div class="token-grid">${auto.map(x=>`<div class="token"><div class="medal"></div><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.date)}</small><div class="token-actions">${b('Adjust journey date',`editJourney(${x.i})`,'alt')}</div></div>`).join('')}</div>`:'<p>Your recovery anniversaries will appear here as your journey unfolds.</p>';
- return `<h4>My chosen tokens</h4>${personal}<h4 style="margin-top:23px">Recovery anniversaries</h4><p class="muted">These are based on your journey start dates. You can correct those dates at any time.</p>${anniversaries}`;
+ const anniversaries=earned.length?`<div class="token-grid anniversary-grid">${earned.map(x=>`<div class="token anniversary-card">${coinFront(x.id)}<strong>${escapeHtml(x.journey)}</strong><small>${escapeHtml(x.date)}</small><div class="token-actions">${b("Read affirmation",`openAnniversaryChip('${x.id}')`,"soft")} ${b("Adjust journey date",`editJourney(${x.index})`,"alt")}</div></div>`).join("")}</div>`:"<p>Your anniversary chips will appear here as you reach each milestone.</p>";
+ return `<h4>My chosen tokens</h4>${personal}<h4 style="margin-top:23px">Anniversary Recovery Chips</h4><p class="muted">Ten milestone designs, each with an affirmation on its reverse. The date comes from your recovery journey and can be corrected.</p>${anniversaries}`;
 }
+
 const resources={spending:[['Understanding spending urges','An urge is a feeling, not an instruction. Notice what happened just before it arose.'],['Emotional triggers','Stress, boredom, loneliness, and excitement can all shape shopping habits.'],['The purchase pause','Give yourself a little time before deciding. A pause is a choice, not a punishment.'],['Recovery without shame','A difficult purchase does not erase the insight and progress you have made.']],spiritual:[['Different paths to meaning','Faith, spirituality, and secular reflection can each offer meaning and community.'],['Mindfulness and grounding','Notice your breath and surroundings without needing to change what you feel.'],['Personal reflection','What helps you feel connected, peaceful, or purposeful?']]};
 function openLibrary(type){el('library').innerHTML=resources[type].map(([title,desc],i)=>`<div class="entry"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(desc)}</p>${b('Save favorite',`addFavorite('${type}',${i})`,'alt')}</div>`).join('')}
 function addFavorite(type,i){let a=store('favorites'),title=resources[type][i][0];if(!a.some(x=>x.title===title))a.unshift({title,description:resources[type][i][1]});if(put('favorites',a))el('favorites').innerHTML=favoriteList()}
