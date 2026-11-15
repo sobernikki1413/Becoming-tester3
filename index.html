@@ -498,7 +498,7 @@ body{background:radial-gradient(ellipse at 96% 12%,#6f426e 0%,transparent 36%),r
 #screen .coastal-page-hero{
  background-image:
  linear-gradient(90deg,rgba(5,21,39,.88) 0%,rgba(8,29,47,.62) 43%,rgba(42,23,61,.16) 100%),
- url('https://images.unsplash.com/photo-1759255570850-026c2cd5384d?auto=format&fit=crop&w=2400&q=85')!important;
+ url('https://images.unsplash.com/photo-1563249289-473d2e2d11b9?auto=format&fit=crop&w=2400&q=85')!important;
  background-size:cover!important;
  background-position:center 50%!important;
 }
@@ -515,7 +515,7 @@ body{background:radial-gradient(ellipse at 96% 12%,#6f426e 0%,transparent 36%),r
  background-position:55% center!important;
  }
 }
-</style><!-- Photo: Ed Wingate, Unsplash, https://unsplash.com/photos/turquoise-ocean-wave-crashing-against-dark-rocks-_1ilCwHHQpQ -->
+</style><!-- Header image: Aline Schmidt, Unsplash, https://unsplash.com/photos/photograph-of-beach-aIU5oEYwjWM . Peach sunset, gentle surf. -->
 </head><body><div class="app" style="display:none"><aside><h1>🌊 Becoming</h1><p>Your Spending Recovery Companion</p><nav id="side"></nav></aside><main><h2 id="title">Welcome to Becoming</h2><div id="screen"></div><p class="foot">BECOMING TEST PREVIEW • Signed-in entries sync with your private Supabase account when online. Check the sync indicator before closing. Keep backups, especially before importing earlier entries. Not a substitute for professional care.</p></main></div><nav class="bottom" id="bottom" style="display:none"></nav><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 let activeUser=null;let becomingScholarshipAdmin=false;const encouragement=['You deserve peace, even on difficult days.','You can pause without giving up.','Your progress is bigger than one moment.','You are worthy of kindness, including your own.'];let encouragementIndex=new Date().getDate()%encouragement.length;let journalMode='blank',urgeNeed='',urgeStage=0;const journalPrompts=["What feelings have been coming up for me today?","What stirred an urge to spend, and what did I need in that moment?","What helped me feel safe or grounded today?","When did I choose something kind for myself?","What did I learn about my spending triggers?","What is one small win I want to remember?","What would support look like for me tomorrow?","What am I carrying that I can put down for tonight?","How did I honor a personal boundary today?","What brought me even a moment of peace?"];let journalPromptIndex=Math.floor(Date.now()/86400000)%journalPrompts.length;let reflectionDraft='';const settings=()=>{try{return JSON.parse(localStorage.getItem('becoming_preferences_'+(activeUser?.id||'signed_out'))||'{}')}catch{return {}}};function setPref(k,v){localStorage.setItem('becoming_preferences_'+(activeUser?.id||'signed_out'),JSON.stringify({...settings(),[k]:v}));render()}const tabs=[['home','⌂ Home'],['spending','♡ Spending'],['mental','☼ Wellness'],['reflect','✎ Reflect'],['growth','✿ My Growth'],['history','▤ Check-In History'],['more','☼ More']];let page='home',mood='',strategies=[],timer=null;const storageKey=k=>'becoming_cloud_cache_v1_'+(activeUser?.id||'signed_out')+'_'+k;
 const store=k=>{try{return JSON.parse(localStorage.getItem(storageKey(k))||'[]')}catch{return []}};
