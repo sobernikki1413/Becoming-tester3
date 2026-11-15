@@ -853,7 +853,7 @@ async function becomingAdminTestCounts(){
 async function becomingTestRedeem(){
  const field=el('becoming-scholarship-test-code'),out=el('becoming-test-result');
  if(!field||!out)return;
- const code=field.value.trim().toUpperCase().replace(/\\s+/g,'');
+ const code=field.value.trim().toUpperCase().replace(/\s+/g,'');
  if(!/^BEC-TEST-[A-F0-9]{36}$/.test(code)){out.textContent='Practice codes start with BEC-TEST- followed by 36 characters. Paste the full code into THIS practice field, not the paid-scholarship field above. Nothing was redeemed.';return}
  out.textContent='Checking test code…';
  try{
