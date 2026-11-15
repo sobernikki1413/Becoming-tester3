@@ -822,15 +822,23 @@ async function becomingAdminRefresh(){
 }
 
 async function becomingAdminIssueTest(){
- const out=el('becoming-admin-test-code');if(!out||!becomingScholarshipAdmin)return;
+ const out=el('becoming-admin-test-code');
+ if(!out||!becomingScholarshipAdmin)return;
+ const button=out.closest('.entry')?.querySelector('button');
+ if(button?.disabled)return;
+ if(button)button.disabled=true;
  out.textContent='Generating isolated test code…';
  try{
   const {data,error}=await supabaseClient.rpc('becoming_admin_issue_test_code');
   if(error)throw error;
-  out.innerHTML='<p><strong>Test code (shown once):</strong> <code>'+escapeHtml(String(data))+'</code></p><p>Copy this code for your other test account. It will NOT activate Premium.</p>';
-  const copy=document.createElement('button');copy.className='btn alt';copy.textContent='Copy test code';copy.onclick=()=>navigator.clipboard?.writeText(String(data));out.appendChild(copy);
+  if(typeof data!=='string'||!/^BEC-TEST-[A-F0-9]{36}$/.test(data))throw Error('UNEXPECTED_TEST_CODE');
+  out.innerHTML='<p><strong>Test code (shown once):</strong> <code>'+escapeHtml(data)+'</code></p><p>Copy this code for your other test account. It will NOT activate Premium.</p>';
+  const copy=document.createElement('button');copy.className='btn alt';copy.textContent='Copy test code';copy.onclick=()=>navigator.clipboard?.writeText(data);out.appendChild(copy);
   becomingAdminTestCounts();
- }catch(e){out.textContent='Test-code generation unavailable. Install the isolated test-code migration first.'}
+ }catch(e){
+  const code=String(e?.code||'');
+  out.textContent=code==='PGRST202'?'Test-code function is missing from the API cache (PGRST202).':code==='42501'?'Your account is not authorized to issue test codes (42501).':'Test-code generation failed. Error code: '+(code||String(e?.message||'unknown').slice(0,85))+'. No successful code generation is confirmed. Please share only this error text, not any credentials.';
+ }finally{if(button)button.disabled=false}
 }
 async function becomingAdminTestCounts(){
  const out=el('becoming-admin-test-counts');if(!out||!becomingScholarshipAdmin)return;
