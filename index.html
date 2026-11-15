@@ -302,6 +302,16 @@ main .card:not(.personal-practice-card){overflow-wrap:anywhere}
 .phoenix-coin strong{font:700 17px Georgia,serif}
 .phoenix-coin small{font-size:10px;letter-spacing:.15em}
 @media(max-width:650px){.phoenix-coin{width:165px;height:165px}.phoenix-mark{height:67px}.phoenix-top{font-size:12px}}
+
+/* Original approved token artwork: static files in assets/ */
+.approved-artwork-wrap{max-width:100%;margin:0 auto 10px;text-align:center;color:#ffe3d0}
+.approved-artwork-img{position:relative;width:190px;max-width:100%;margin:auto;aspect-ratio:1/1}
+.approved-artwork-img>img{display:block;width:100%;height:100%;object-fit:contain;border-radius:50%;box-shadow:0 12px 23px #0008}
+.approved-artwork-img>.artwork-overlay-title,.approved-artwork-img>.artwork-overlay-milestone{position:absolute;left:50%;transform:translateX(-50%);max-width:86%;white-space:nowrap;color:#ffe1c2;font:bold 13px Georgia,serif;letter-spacing:.08em;text-shadow:0 1px 4px #051b2c;-webkit-text-stroke:.3px #9a6259}
+.approved-artwork-img>.artwork-overlay-title{top:13%;font-size:12px}
+.approved-artwork-img>.artwork-overlay-milestone{bottom:12%;font-size:16px;border:1px solid #ce9a81;border-radius:15px;background:#08243ce9;padding:4px 9px}
+.artwork-phoenix-category{display:block;margin-top:5px;font-family:Georgia,serif;font-size:17px;color:#ffdfc6}
+@media(max-width:650px){.approved-artwork-img{width:165px}.approved-artwork-img>.artwork-overlay-title{font-size:11px}.approved-artwork-img>.artwork-overlay-milestone{font-size:14px}}
 </style></head><body><div class="app" style="display:none"><aside><h1>🌊 Becoming</h1><p>Your Spending Recovery Companion</p><nav id="side"></nav></aside><main><h2 id="title">Welcome to Becoming</h2><div id="screen"></div><p class="foot">BECOMING TEST PREVIEW • Signed-in entries sync with your private Supabase account when online. Check the sync indicator before closing. Keep backups, especially before importing earlier entries. Not a substitute for professional care.</p></main></div><nav class="bottom" id="bottom" style="display:none"></nav><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 let activeUser=null;const encouragement=['You deserve peace, even on difficult days.','You can pause without giving up.','Your progress is bigger than one moment.','You are worthy of kindness, including your own.'];let encouragementIndex=new Date().getDate()%encouragement.length;let journalMode='blank',urgeNeed='',urgeStage=0;const journalPrompts=["What feelings have been coming up for me today?","What stirred an urge to spend, and what did I need in that moment?","What helped me feel safe or grounded today?","When did I choose something kind for myself?","What did I learn about my spending triggers?","What is one small win I want to remember?","What would support look like for me tomorrow?","What am I carrying that I can put down for tonight?","How did I honor a personal boundary today?","What brought me even a moment of peace?"];let journalPromptIndex=Math.floor(Date.now()/86400000)%journalPrompts.length;let reflectionDraft='';const settings=()=>{try{return JSON.parse(localStorage.getItem('becoming_preferences_'+(activeUser?.id||'signed_out'))||'{}')}catch{return {}}};function setPref(k,v){localStorage.setItem('becoming_preferences_'+(activeUser?.id||'signed_out'),JSON.stringify({...settings(),[k]:v}));render()}const tabs=[['home','⌂ Home'],['spending','♡ Spending'],['mental','☼ Wellness'],['reflect','✎ Reflect'],['growth','✿ My Growth'],['history','▤ Check-In History'],['more','☼ More']];let page='home',mood='',strategies=[],timer=null;const storageKey=k=>'becoming_cloud_cache_v1_'+(activeUser?.id||'signed_out')+'_'+k;
 const store=k=>{try{return JSON.parse(localStorage.getItem(storageKey(k))||'[]')}catch{return []}};
@@ -402,10 +412,22 @@ function anniversaryDate(startIso, milestone){
  return new Date(y,mo,Math.min(start.getDate(),last),12);
 }
 
-function coinFront(label){
+function fallbackCoinFront(label){
  return `<div class="becoming-coin" role="img" aria-label="Becoming ocean-wave anniversary chip, ${escapeHtml(label)}"><div class="coin-top">BECOMING</div><svg class="coin-wave" viewBox="0 0 190 106" aria-hidden="true" focusable="false"><defs><linearGradient id="coin-wave-fill" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#cce8e4"/><stop offset=".5" stop-color="#4ca6b7"/><stop offset="1" stop-color="#0c3754"/></linearGradient></defs><path fill="url(#coin-wave-fill)" d="M4 82 C24 60 49 59 67 66 C84 73 96 73 106 62 C115 50 114 40 105 30 C94 18 81 19 73 25 C94 -1 137 -5 160 15 C179 31 184 60 169 79 C151 101 119 104 93 94 C62 83 38 86 4 82Z"/><path d="M60 64 C88 76 114 68 128 46 C138 29 128 17 115 11 C137 11 157 30 154 51 C152 78 120 88 96 82" stroke="#eac3ac" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M11 82 C39 75 62 77 85 88" stroke="#b8e1df" stroke-width="3" fill="none" stroke-linecap="round"/></svg><strong class="coin-label">${escapeHtml(label)}</strong></div>`;
 }
 
+
+function coinFront(label){
+ const isWeek=label==="1 WEEK";
+ const file=isWeek?"anniversary-1-week.webp":"anniversary-wave-base.webp";
+ const title="Becoming ${escapeHtml(label)} ocean-wave recovery chip";
+ return `<div class="approved-artwork-wrap" role="group" aria-label="${title}">
+ <div class="approved-artwork-img">
+ <img src="assets/${file}" alt="${title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+ <div style="display:none">${fallbackCoinFront(label)}</div>
+ ${isWeek?'':`<div class="artwork-overlay-title">BECOMING</div><div class="artwork-overlay-milestone">${escapeHtml(label)}</div>`}
+ </div></div>`;
+}
 function openAnniversaryChip(id){
  const chip=anniversaryMilestones.find(x=>x.id===id);
  if(!chip)return;
@@ -422,10 +444,18 @@ function openAnniversaryChip(id){
 }
 
 const phoenixAffirmations={"Courage":["I found courage in the moment I chose to try.","My fear does not define me. My courage carries me forward.","I can be afraid and still do extraordinary things.","Today, I chose bravery over the comfort of staying the same.","I have survived difficult chapters. I trust myself to write beautiful new ones."],"Boundaries":["My boundaries are an expression of self-respect, not something I need to apologize for.","No is a complete sentence. I do not owe an explanation for honoring my boundaries.","Choosing myself does not mean I love others less. It means I am finally honoring myself, too.","I no longer have to abandon myself to keep others comfortable.","Every boundary I honor is a promise to myself that my needs, feelings, and well-being matter."],"Self-Love":["I am worthy of love, especially the love I give myself.","I no longer need to earn my worth. I was always enough.","I am learning to speak to myself with the same kindness I offer others.","My imperfections do not diminish my beauty, my strength, or my value.","I am no longer waiting to become someone worthy of love. I am choosing to love the person I am today."],"Recovery":["Progress, not perfection. My mistakes do not define me. My growth does.","One day at a time, one choice at a time. I do not have to conquer tomorrow or rewrite yesterday. Today, I only need the courage to keep becoming.","My setbacks do not erase my victories. Every new beginning is an act of courage.","I no longer need to escape my feelings. I have the strength to face them and the courage to heal.","I am more than my struggles. My past is part of my story, but it does not decide my future."],"Personal Growth":["I am not the person I once was. I fought for my growth, and I am proud of who I am becoming.","I refuse to let fear keep me small. I was made to grow beyond the limits I once accepted.","I will not apologize for outgrowing the version of myself that existed only to please others.","I have walked through storms that tried to break me. I emerged stronger, wiser, and more determined than ever.","I am done shrinking myself to fit a life I have outgrown. I am creating a future that is unapologetically mine."]};
-function phoenixCoinFront(category){
+function fallbackPhoenixCoinFront(category){
  return `<div class="phoenix-coin" role="img" aria-label="Becoming Phoenix Victory Token for ${escapeHtml(category)}"><div class="phoenix-top">BECOMING</div><svg class="phoenix-mark" viewBox="0 0 130 104" aria-hidden="true" focusable="false"><path fill="#edbc93" d="M65 84c-1-22 7-34 22-47-4 16 3 22 19 20-11 13-20 17-36 22 4-15 4-23-5-33-9 10-9 18-5 33-16-5-25-9-36-22 16 2 23-4 19-20 15 13 23 25 22 47Z"/><path fill="#ffe0b9" d="M65 18c-2 11 0 15 6 22 10-13 6-24 0-33-8 10-21 19-18 37 2 9 8 15 12 19-5-20 12-30 0-45Z"/><path fill="none" stroke="#f8d2a9" stroke-width="3" stroke-linecap="round" d="M25 76c13 10 23 14 40 15 17-1 27-5 40-15"/></svg><strong>${escapeHtml(category)}</strong><small>VICTORY TOKEN</small></div>`;
 }
 
+
+function phoenixCoinFront(category){
+ const title="Becoming Phoenix Victory Token for "+escapeHtml(category);
+ return `<div class="approved-artwork-wrap" role="group" aria-label="${title}"><div class="approved-artwork-img">
+ <img src="assets/phoenix-victory.webp" alt="${title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+ <div style="display:none">${fallbackPhoenixCoinFront(category)}</div>
+ </div><strong class="artwork-phoenix-category">${escapeHtml(category)}</strong></div>`;
+}
 function phoenixCreator(){
  return `<div class="card"><h3>Phoenix Victory Tokens</h3><p>Honor a personal victory with a circular Phoenix keepsake. Choose an approved affirmation or write your own. Tokens are private by default.</p><label for="phoenix-category">Victory category</label><select id="phoenix-category" onchange="refreshPhoenixAffirmations()">${Object.keys(phoenixAffirmations).map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("")}</select><label for="phoenix-affirmation">Affirmation on the reverse</label><select id="phoenix-affirmation" onchange="togglePhoenixCustom()">${phoenixAffirmations.Courage.map((x,i)=>`<option value="${i}">${escapeHtml(x)}</option>`).join("")}<option value="custom">Write my own affirmation</option></select><div id="phoenix-custom-wrap" hidden><label for="phoenix-custom-text">My own affirmation</label><textarea id="phoenix-custom-text" maxlength="1500" placeholder="Write what this victory means to you"></textarea></div><label for="phoenix-date">Date of my victory</label><input id="phoenix-date" type="date" value="${dateLocal(new Date())}" max="${dateLocal(new Date())}"><p>${b("Save Phoenix Victory Token","savePhoenixToken()","soft")}</p></div>`;
 }
