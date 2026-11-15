@@ -821,6 +821,19 @@ async function becomingAdminRefresh(){
  }catch(e){counts.textContent='Could not load admin inventory. Check that the admin SQL is installed and your account is authorized.';issued.textContent=''}
 }
 
+async function becomingCopyTestCode(){
+ const input=el('becoming-generated-test-code'),notice=el('becoming-copy-test-status');
+ if(!input||!notice)return;
+ const value=input.value;
+ try{
+  if(!navigator.clipboard?.writeText)throw Error('Clipboard API unavailable');
+  await navigator.clipboard.writeText(value);
+  notice.textContent='Copied all '+value.length+' characters. You can paste it into Practice Code Testing.';
+ }catch(e){
+  input.focus();input.select();
+  notice.textContent='Automatic copying is unavailable. The complete code is selected above—press Ctrl+C (or Copy on mobile) to copy it manually.';
+ }
+}
 async function becomingAdminIssueTest(){
  const out=el('becoming-admin-test-code');
  if(!out||!becomingScholarshipAdmin)return;
@@ -832,12 +845,13 @@ async function becomingAdminIssueTest(){
   const {data,error}=await supabaseClient.rpc('becoming_admin_issue_test_code');
   if(error)throw error;
   if(typeof data!=='string'||!/^BEC-TEST-[A-F0-9]{36}$/.test(data))throw Error('UNEXPECTED_TEST_CODE');
-  out.innerHTML='<p><strong>Test code (shown once):</strong> <code>'+escapeHtml(data)+'</code></p><p>Copy this code for your other test account. It will NOT activate Premium.</p>';
-  const copy=document.createElement('button');copy.className='btn alt';copy.textContent='Copy test code';copy.onclick=()=>navigator.clipboard?.writeText(data);out.appendChild(copy);
+  out.innerHTML='<p><strong>Your TEST code (save before leaving this page):</strong></p><input id="becoming-generated-test-code" readonly aria-label="Complete practice code" style="font-family:monospace" value="'+escapeHtml(data)+'"><p>Complete code: '+data.length+' characters. No Premium access or real scholarship funds are involved.</p><p><button class="btn alt" onclick="becomingCopyTestCode()">Copy complete code</button></p><p id="becoming-copy-test-status" role="status">You can also click the field to select and copy the code manually.</p>';
+  const input=el('becoming-generated-test-code');
+  if(input)input.addEventListener('click',()=>input.select());
   becomingAdminTestCounts();
  }catch(e){
   const code=String(e?.code||'');
-  out.textContent=code==='PGRST202'?'Test-code function is missing from the API cache (PGRST202).':code==='42501'?'Your account is not authorized to issue test codes (42501).':'Test-code generation failed. Error code: '+(code||String(e?.message||'unknown').slice(0,85))+'. No successful code generation is confirmed. Please share only this error text, not any credentials.';
+  out.textContent=code==='PGRST202'?'Test-code function is missing from the API cache (PGRST202).':code==='42501'?'Your account is not authorized to issue test codes (42501).':'Test-code generation failed. Error code: '+(code||String(e?.message||'unknown').slice(0,85))+'. No successful code generation is confirmed.';
  }finally{if(button)button.disabled=false}
 }
 async function becomingAdminTestCounts(){
