@@ -312,6 +312,7 @@ main .card:not(.personal-practice-card){overflow-wrap:anywhere}
 .approved-artwork-img>.artwork-overlay-milestone{bottom:12%;font-size:16px;border:1px solid #ce9a81;border-radius:15px;background:#08243ce9;padding:4px 9px}
 .artwork-phoenix-category{display:block;margin-top:5px;font-family:Georgia,serif;font-size:17px;color:#ffdfc6}
 @media(max-width:650px){.approved-artwork-img{width:165px}.approved-artwork-img>.artwork-overlay-title{font-size:11px}.approved-artwork-img>.artwork-overlay-milestone{font-size:14px}}
+.keepsake-dialog{max-width:690px}.keepsake-tabs{display:flex;gap:8px;margin:14px 0}.keepsake-dialog #keepsake-face-front{text-align:center;padding:18px 0}.keepsake-dialog #keepsake-face-front .approved-artwork-img{width:min(310px,80vw)}.keepsake-dialog #keepsake-face-back[hidden],.keepsake-dialog #keepsake-face-front[hidden]{display:none}.keepsake-dialog .dialog-actions{display:flex;gap:8px;flex-wrap:wrap}
 </style></head><body><div class="app" style="display:none"><aside><h1>🌊 Becoming</h1><p>Your Spending Recovery Companion</p><nav id="side"></nav></aside><main><h2 id="title">Welcome to Becoming</h2><div id="screen"></div><p class="foot">BECOMING TEST PREVIEW • Signed-in entries sync with your private Supabase account when online. Check the sync indicator before closing. Keep backups, especially before importing earlier entries. Not a substitute for professional care.</p></main></div><nav class="bottom" id="bottom" style="display:none"></nav><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 let activeUser=null;const encouragement=['You deserve peace, even on difficult days.','You can pause without giving up.','Your progress is bigger than one moment.','You are worthy of kindness, including your own.'];let encouragementIndex=new Date().getDate()%encouragement.length;let journalMode='blank',urgeNeed='',urgeStage=0;const journalPrompts=["What feelings have been coming up for me today?","What stirred an urge to spend, and what did I need in that moment?","What helped me feel safe or grounded today?","When did I choose something kind for myself?","What did I learn about my spending triggers?","What is one small win I want to remember?","What would support look like for me tomorrow?","What am I carrying that I can put down for tonight?","How did I honor a personal boundary today?","What brought me even a moment of peace?"];let journalPromptIndex=Math.floor(Date.now()/86400000)%journalPrompts.length;let reflectionDraft='';const settings=()=>{try{return JSON.parse(localStorage.getItem('becoming_preferences_'+(activeUser?.id||'signed_out'))||'{}')}catch{return {}}};function setPref(k,v){localStorage.setItem('becoming_preferences_'+(activeUser?.id||'signed_out'),JSON.stringify({...settings(),[k]:v}));render()}const tabs=[['home','⌂ Home'],['spending','♡ Spending'],['mental','☼ Wellness'],['reflect','✎ Reflect'],['growth','✿ My Growth'],['history','▤ Check-In History'],['more','☼ More']];let page='home',mood='',strategies=[],timer=null;const storageKey=k=>'becoming_cloud_cache_v1_'+(activeUser?.id||'signed_out')+'_'+k;
 const store=k=>{try{return JSON.parse(localStorage.getItem(storageKey(k))||'[]')}catch{return []}};
@@ -428,19 +429,12 @@ function coinFront(label){
  ${isWeek?'':`<div class="artwork-overlay-title">BECOMING</div><div class="artwork-overlay-milestone">${escapeHtml(label)}</div>`}
  </div></div>`;
 }
-function openAnniversaryChip(id){
+function openAnniversaryChip(id,journeyIndex=null){
  const chip=anniversaryMilestones.find(x=>x.id===id);
  if(!chip)return;
- document.getElementById("becoming-anniversary-dialog")?.remove();
- const dialog=document.createElement("dialog");
- dialog.id="becoming-anniversary-dialog";
- dialog.className="edit-dialog anniversary-dialog";
- dialog.setAttribute("aria-label",chip.id+" anniversary chip affirmation");
- dialog.innerHTML=`<h3>${escapeHtml(chip.id)} · Your keepsake</h3><div class="coin-back"><span>BECOMING</span><p>${escapeHtml(chip.text)}</p></div><p class="muted">Your full affirmation is shown here so every word stays readable.</p><button type="button" class="btn soft" id="close-anniversary-chip">Close</button>`;
- document.body.appendChild(dialog);
- dialog.querySelector("#close-anniversary-chip").onclick=()=>dialog.close();
- dialog.addEventListener("close",()=>dialog.remove(),{once:true});
- dialog.showModal();
+ const j=journeyIndex===null?null:store("journeys")[journeyIndex];
+ const date=j&&validDate(j.date)?dateLocal(anniversaryDate(j.date,chip)):"";
+ keepsakeModal(coinFront(chip.id),chip.id,chip.text,date,"anniversary",chip.id);
 }
 
 const phoenixAffirmations={"Courage":["I found courage in the moment I chose to try.","My fear does not define me. My courage carries me forward.","I can be afraid and still do extraordinary things.","Today, I chose bravery over the comfort of staying the same.","I have survived difficult chapters. I trust myself to write beautiful new ones."],"Boundaries":["My boundaries are an expression of self-respect, not something I need to apologize for.","No is a complete sentence. I do not owe an explanation for honoring my boundaries.","Choosing myself does not mean I love others less. It means I am finally honoring myself, too.","I no longer have to abandon myself to keep others comfortable.","Every boundary I honor is a promise to myself that my needs, feelings, and well-being matter."],"Self-Love":["I am worthy of love, especially the love I give myself.","I no longer need to earn my worth. I was always enough.","I am learning to speak to myself with the same kindness I offer others.","My imperfections do not diminish my beauty, my strength, or my value.","I am no longer waiting to become someone worthy of love. I am choosing to love the person I am today."],"Recovery":["Progress, not perfection. My mistakes do not define me. My growth does.","One day at a time, one choice at a time. I do not have to conquer tomorrow or rewrite yesterday. Today, I only need the courage to keep becoming.","My setbacks do not erase my victories. Every new beginning is an act of courage.","I no longer need to escape my feelings. I have the strength to face them and the courage to heal.","I am more than my struggles. My past is part of my story, but it does not decide my future."],"Personal Growth":["I am not the person I once was. I fought for my growth, and I am proud of who I am becoming.","I refuse to let fear keep me small. I was made to grow beyond the limits I once accepted.","I will not apologize for outgrowing the version of myself that existed only to please others.","I have walked through storms that tried to break me. I emerged stronger, wiser, and more determined than ever.","I am done shrinking myself to fit a life I have outgrown. I am creating a future that is unapologetically mine."]};
@@ -486,20 +480,77 @@ function savePhoenixToken(){
 function openPhoenixToken(index){
  const token=store("personalTokens")[index];
  if(token?.type!=="phoenix")return;
- document.getElementById("becoming-phoenix-dialog")?.remove();
+ keepsakeModal(phoenixCoinFront(token.category||"Victory"),token.category||"Victory",token.affirmation||"",token.date||"","phoenix",token.category||"Victory");
+}
+
+function keepsakeModal(front,heading,affirmation,date,kind,label) {
+ document.getElementById("becoming-keepsake-dialog")?.remove();
  const dialog=document.createElement("dialog");
- dialog.id="becoming-phoenix-dialog";dialog.className="edit-dialog anniversary-dialog";
- dialog.setAttribute("aria-label",token.category+" Phoenix Victory Token");
- dialog.innerHTML=`<h3>${escapeHtml(token.category)} · Your Phoenix keepsake</h3><div class="coin-back"><span>PHOENIX VICTORY</span><p>${escapeHtml(token.affirmation||"")}</p></div><p class="muted">Your full affirmation remains readable and private.</p><button type="button" class="btn soft" id="close-phoenix">Close</button>`;
+ dialog.id="becoming-keepsake-dialog";
+ dialog.className="edit-dialog keepsake-dialog";
+ dialog.innerHTML=`<h3>${escapeHtml(heading)} · My Keepsake Vault</h3><p class="muted">${escapeHtml(date||"")}</p><div class="keepsake-tabs"><button type="button" class="btn soft" id="keepsake-view-front">Front</button><button type="button" class="btn alt" id="keepsake-view-back">Back</button></div><div id="keepsake-face-front">${front}</div><div id="keepsake-face-back" hidden><div class="coin-back"><span>BECOMING</span><p>${escapeHtml(affirmation)}</p></div></div><p class="muted">Your saved tokens remain private. Downloaded keepsakes are yours to share if you wish.</p><p id="keepsake-feedback" role="status"></p><div class="dialog-actions"><button type="button" class="btn soft" id="keepsake-save">Download both sides (PNG)</button><button type="button" class="btn alt" id="keepsake-close">Close</button></div>`;
  document.body.appendChild(dialog);
- dialog.querySelector("#close-phoenix").onclick=()=>dialog.close();
+ const f=dialog.querySelector("#keepsake-face-front"),b=dialog.querySelector("#keepsake-face-back");
+ dialog.querySelector("#keepsake-view-front").onclick=()=>{f.hidden=false;b.hidden=true};
+ dialog.querySelector("#keepsake-view-back").onclick=()=>{f.hidden=true;b.hidden=false};
+ dialog.querySelector("#keepsake-close").onclick=()=>dialog.close();
+ dialog.querySelector("#keepsake-save").onclick=async()=>{
+  const feedback=dialog.querySelector("#keepsake-feedback");
+  feedback.textContent="Preparing your keepsake…";
+  try{
+    await downloadTokenKeepsake(kind,label,affirmation,date);
+    feedback.textContent="Download ready.";
+  }catch(e){feedback.textContent="Download unavailable. Your saved token was not changed.";}
+ };
  dialog.addEventListener("close",()=>dialog.remove(),{once:true});
  dialog.showModal();
 }
 
+function downloadTokenKeepsake(kind,label,affirmation,date){
+ return new Promise((resolve,reject)=>{
+  const image=new Image();
+  const filename=kind==="phoenix"?"phoenix-victory.webp":label==="1 WEEK"?"anniversary-1-week.webp":"anniversary-wave-base.webp";
+  image.onload=()=>{
+   try{
+    const c=document.createElement("canvas");c.width=1500;c.height=850;
+    const ctx=c.getContext("2d");
+    ctx.fillStyle="#0a2c44";ctx.fillRect(0,0,1500,850);
+    ctx.save();ctx.beginPath();ctx.arc(385,390,310,0,Math.PI*2);ctx.clip();ctx.drawImage(image,75,80,620,620);ctx.restore();
+    if(kind==="anniversary"&&label!=="1 WEEK"){
+      ctx.fillStyle="#0b2a40";ctx.fillRect(195,570,380,65);
+      ctx.fillStyle="#f5cba9";ctx.font="bold 43px Georgia";ctx.textAlign="center";ctx.fillText(label,385,617);
+    }
+    ctx.strokeStyle="#dbb396";ctx.lineWidth=7;ctx.strokeRect(765,80,675,620);
+    ctx.textAlign="center";ctx.fillStyle="#f3d0b8";ctx.font="bold 35px Georgia";ctx.fillText(label,1100,149);
+    ctx.fillStyle="#fff0e5";let size=27,lines=[];
+    while(size>=16){
+      ctx.font=size+"px Georgia";lines=[];
+      for(const paragraph of String(affirmation).split("\n")){
+        let line="";
+        for(const word of paragraph.split(/\s+/)){
+          if(ctx.measureText(line+" "+word).width>560&&line){lines.push(line);line=word}else{line+=(line?" ":"")+word}
+        }
+        lines.push(line);
+      }
+      if(lines.length*size*1.55<=455)break;size--;
+    }
+    let y=Math.max(218,380-lines.length*size*.775);
+    for(const line of lines){ctx.fillText(line,1100,y);y+=size*1.55}
+    ctx.fillStyle="#e5c0a4";ctx.font="22px Georgia";ctx.fillText(String(date||""),1100,667);
+    ctx.font="bold 28px Georgia";ctx.fillText("BECOMING · MY KEEPSAKE",750,785);
+    const link=document.createElement("a");link.download="Becoming-"+String(label).toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-keepsake.png";
+    link.href=c.toDataURL("image/png");document.body.appendChild(link);link.click();link.remove();
+    resolve();
+   }catch(e){reject(e)}
+  };
+  image.onerror=()=>reject(new Error("Approved artwork not loaded"));
+  image.src="assets/"+filename;
+ });
+}
+
 function tokenList(){
  const mine=store("personalTokens");
- const personal=mine.length?`<div class="token-grid">${mine.map((x,i)=>x.type==="phoenix"?`<div class="token phoenix-card">${phoenixCoinFront(x.category||"Victory")}<strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.date||"")}</small><div class="token-actions">${b("Read affirmation",`openPhoenixToken(${i})`,"soft")} ${b("Edit",`editRecord('personalTokens',${i})`,"alt")} ${b("Delete",`del('personalTokens',${i})`,"alt")}</div></div>`:`<div class="token"><div class="medal">✦</div><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.date||"")} ${x.journey?"· "+escapeHtml(x.journey):""}</small><div class="token-actions">${b("Edit",`editRecord('personalTokens',${i})`,"alt")} ${b("Delete",`del('personalTokens',${i})`,"alt")}</div></div>`).join("")}</div>`:"<p>No personal tokens saved yet. You get to decide what deserves celebration.</p>";
+ const personal=mine.length?`<div class="token-grid">${mine.map((x,i)=>x.type==="phoenix"?`<div class="token phoenix-card">${phoenixCoinFront(x.category||"Victory")}<strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.date||"")}</small><div class="token-actions">${b("View keepsake",`openPhoenixToken(${i})`,"soft")} ${b("Edit",`editRecord('personalTokens',${i})`,"alt")} ${b("Delete",`del('personalTokens',${i})`,"alt")}</div></div>`:`<div class="token"><div class="medal">✦</div><strong>${escapeHtml(x.name)}</strong><small>${escapeHtml(x.date||"")} ${x.journey?"· "+escapeHtml(x.journey):""}</small><div class="token-actions">${b("Edit",`editRecord('personalTokens',${i})`,"alt")} ${b("Delete",`del('personalTokens',${i})`,"alt")}</div></div>`).join("")}</div>`:"<p>No personal tokens saved yet. You get to decide what deserves celebration.</p>";
  const earned=[];
  const today=dateLocal(new Date());
  for(const [i,j] of store("journeys").entries()){
@@ -509,8 +560,8 @@ function tokenList(){
    if(when&&dateLocal(when)<=today)earned.push({...chip,date:dateLocal(when),journey:j.name,index:i});
   }
  }
- const anniversaries=earned.length?`<div class="token-grid anniversary-grid">${earned.map(x=>`<div class="token anniversary-card">${coinFront(x.id)}<strong>${escapeHtml(x.journey)}</strong><small>${escapeHtml(x.date)}</small><div class="token-actions">${b("Read affirmation",`openAnniversaryChip('${x.id}')`,"soft")} ${b("Adjust journey date",`editJourney(${x.index})`,"alt")}</div></div>`).join("")}</div>`:"<p>Your anniversary chips will appear here as you reach each milestone.</p>";
- return `<h4>My chosen tokens</h4>${personal}<h4 style="margin-top:23px">Anniversary Recovery Chips</h4><p class="muted">Ten milestone designs, each with an affirmation on its reverse. The date comes from your recovery journey and can be corrected.</p>${anniversaries}`;
+ const anniversaries=earned.length?`<div class="token-grid anniversary-grid">${earned.map(x=>`<div class="token anniversary-card">${coinFront(x.id)}<strong>${escapeHtml(x.journey)}</strong><small>${escapeHtml(x.date)}</small><div class="token-actions">${b("View keepsake",`openAnniversaryChip('${x.id}',${x.index})`,"soft")} ${b("Adjust journey date",`editJourney(${x.index})`,"alt")}</div></div>`).join("")}</div>`:"<p>Your anniversary chips will appear here as you reach each milestone.</p>";
+ return `<h3>My Keepsake Vault</h3><p class="muted">View front and back, and download your keepsakes.</p><h4>My chosen tokens</h4>${personal}<h4 style="margin-top:23px">Anniversary Recovery Chips</h4><p class="muted">Ten milestone designs, each with an affirmation on its reverse. The date comes from your recovery journey and can be corrected.</p>${anniversaries}`;
 }
 
 const resources={spending:[['Understanding spending urges','An urge is a feeling, not an instruction. Notice what happened just before it arose.'],['Emotional triggers','Stress, boredom, loneliness, and excitement can all shape shopping habits.'],['The purchase pause','Give yourself a little time before deciding. A pause is a choice, not a punishment.'],['Recovery without shame','A difficult purchase does not erase the insight and progress you have made.']],spiritual:[['Different paths to meaning','Faith, spirituality, and secular reflection can each offer meaning and community.'],['Mindfulness and grounding','Notice your breath and surroundings without needing to change what you feel.'],['Personal reflection','What helps you feel connected, peaceful, or purposeful?']]};
