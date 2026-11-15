@@ -4,6 +4,9 @@
 -- Scholarship funding must be verified by an administrator before issuing codes.
 begin;
 
+-- Supabase normally installs pgcrypto into extensions.
+create extension if not exists pgcrypto with schema extensions;
+
 create table if not exists public.becoming_scholarship_codes (
   id uuid primary key default gen_random_uuid(),
   code_hash text not null unique,
@@ -44,11 +47,11 @@ begin
     raise exception 'Funding reference is required';
   end if;
 
-  v_code := 'BEC-' || upper(encode(gen_random_bytes(18),'hex'));
+  v_code := 'BEC-' || upper(encode(extensions.gen_random_bytes(18),'hex'));
   insert into public.becoming_scholarship_codes
     (code_hash,status,funding_reference,issued_at)
   values
-    (encode(digest(v_code,'sha256'),'hex'),'issued',p_funding_reference,now());
+    (encode(extensions.digest(v_code,'sha256'),'hex'),'issued',p_funding_reference,now());
   return v_code; -- show once to the admin; store only the hash
 end;
 $$;
@@ -80,7 +83,7 @@ begin
 
   select id into v_code_id
   from public.becoming_scholarship_codes
-  where code_hash = encode(digest(upper(p_code),'sha256'),'hex')
+  where code_hash = encode(extensions.digest(upper(p_code),'sha256'),'hex')
     and status='issued'
   for update;
 
