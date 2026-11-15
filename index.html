@@ -1132,19 +1132,35 @@ async function redeemScholarshipCode(){
  }finally{if(btn)btn.disabled=false}
 }
 async function showMembershipStatus(){
- const status=el("becoming-scholarship-result");
+ const status=el('becoming-scholarship-result');
  if(!status)return;
- if(!activeUser){status.textContent="Please sign in first.";return}
- status.textContent="Checking your membership…";
+ if(!activeUser){status.textContent='Please sign in first.';return}
+ const account=activeUser.id;
+ status.textContent='Checking your membership…';
  try{
-   const {data,error}=await supabaseClient.from("becoming_memberships").select("trial_ends_at,premium_until,premium_source").eq("user_id",activeUser.id).maybeSingle();
-   if(error)throw error;
-   const until=data?.premium_until?new Date(data.premium_until):null;
-   const trial=data?.trial_ends_at?new Date(data.trial_ends_at):null;
-   if(until&&!Number.isNaN(until.getTime())&&until>new Date())status.textContent="Premium active through "+until.toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"})+".";
-   else if(trial&&!Number.isNaN(trial.getTime())&&trial>new Date())status.textContent="Full-access trial through "+trial.toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"})+".";
-   else status.textContent="Your permanently free recovery tools remain available. No active Premium award is recorded.";
- }catch(e){status.textContent="Membership status couldn't be loaded right now. Your recovery tools remain available."}
+  const {data,error}=await supabaseClient.rpc('becoming_my_membership_status');
+  if(!activeUser||activeUser.id!==account||!status.isConnected)return;
+  if(error)throw error;
+  const membership=Array.isArray(data)?data[0]:data;
+  if(!membership){status.textContent='Your permanently free recovery tools are available. No membership record was found.';return}
+  const dateString=value=>{
+   const d=new Date(value);
+   return Number.isNaN(d.getTime())?'the recorded expiration date':d.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+  };
+  const premiumUntil=membership.premium_until?new Date(membership.premium_until):null;
+  const trialEnds=membership.trial_ends_at?new Date(membership.trial_ends_at):null;
+  if(premiumUntil&&!Number.isNaN(premiumUntil.getTime())&&premiumUntil>new Date()){
+   status.textContent='Premium membership active through '+dateString(membership.premium_until)+'. Your recovery records remain yours.';
+  }else if(trialEnds&&!Number.isNaN(trialEnds.getTime())&&trialEnds>new Date()){
+   status.textContent='Your seven-day trial is active through '+dateString(membership.trial_ends_at)+'. No automatic billing is enabled.';
+  }else if(membership.trial_used){
+   status.textContent='Your trial has already been used. Permanently free recovery tools remain available, and your records are preserved.';
+  }else{
+   status.textContent='Your permanently free recovery tools are available. Your seven-day trial has not started.';
+  }
+ }catch(e){
+  status.textContent='Membership status is temporarily unavailable. Your free recovery tools remain available.';
+ }
 }
 
 async function sendReset(){const email=prompt('Enter your account email address:');if(!email)return;try{const r=await supabaseClient.auth.resetPasswordForEmail(email.trim(),{redirectTo:location.origin+location.pathname});if(r.error)throw r.error;authMessage('If that account exists, a password reset email has been sent.')}catch(e){authMessage(e.message||'Unable to send reset email.')}}
