@@ -23,10 +23,10 @@ Prepare and test the website and mobile app privately, confirm funding and costs
 | Recovery website | Tester preview exists | Regression, accessibility, privacy and security audit |
 | Private recovery-record storage | Working in tester | Two-account RLS/security check; backup/restore rehearsal |
 | Membership SQL foundation | User reports successful Supabase installation | Verify row-level policies and registration trigger |
-| Scholarship SQL foundation | User reports successful Supabase installation | Issue/redeem test codes and confirm single-use security |
+| Scholarship SQL foundation | User confirmed Supabase installation; practice-code first redemption succeeded | Confirm reusing the same code is blocked and verify admin redeemed count |
 | Scholarship redemption screen | Committed; user visual check passed | End-to-end redemption test with a disposable account |
-| Admin scholarship dashboard | Not built | Secure authentication, funded inventory, issue/void tracking |
-| Trial activation | Not built | Server-authoritative one-time seven-day trial activation |
+| Admin scholarship dashboard | Built in tester; user confirmed admin-only visibility | Audit authorization and test issuance/void end-to-end |
+| Trial activation | One-time, server-authoritative SQL migration staged in repository; not installed or activated | Apply and security-test migration, then connect only after actual Premium features are available |
 | Premium permissions | Not built | Apply feature rules without hiding free recovery support |
 | Billing and cancellations | Not built | Payment provider, secure webhooks, receipts and self-service cancel |
 | Mobile apps | Not built | App packaging, real-device testing, store requirements and review |
@@ -38,7 +38,8 @@ Do not expose Supabase service-role credentials in browser code. Do not use clie
 
 ## Immediate focus
 1. End-to-end scholarship code redemption test with a disposable test account and funded test inventory that is not mistaken for a real funded award.
-2. Review and harden admin-issued code workflow; build administrator-only access and inventory.
-3. Implement one-time trial activation and shared entitlements; add payment integrations later.
+2. Audit and harden the existing admin-issued code workflow and the account-isolation rules.
+3. Apply and test the staged one-time trial SQL only when ready; never start member trials before Premium access exists.
+4. Build secure entitlement gating and subscriptions; payment integrations and mobile launch remain pending.
 
 This file is a work tracker, not a claim that listed features are completed.
