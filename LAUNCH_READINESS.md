@@ -33,6 +33,15 @@ Prepare and test the website and mobile app privately, confirm funding and costs
 | Community and meetings | Planning-stage | Moderation, privacy, staffing, infrastructure and safety |
 | Legal and operations | Not finalized | Terms, privacy, support processes and actual cost model |
 
+## November 16, 2026 — verified tester progress and remaining gates
+- Tested with founder: sign-in on the original Supabase project, manual payment reference creation, administrator queue display, and rejecting an unpaid test request.
+- The Membership navigation tab separates payments/scholarships from More; the ocean-wave donation tracker is a manually maintained $0 of $600 starting display, not real-time verified giving.
+- The manual cancellation button and corresponding secure server RPC have been committed to the feature branch. The new cancellation SQL has **not** been confirmed installed in the original authentication database and must not be described as operational yet.
+- Automatic renewals are **planned optional** functionality, not implemented. Before enabling: explicit opt-in, secure payment-provider integration, authorized billing state, receipts, a real cancellation mechanism that prevents future charges, payment-failure handling, refund/dispute processes, and tests. A manual cancellation flag alone cannot stop provider-side recurring charges.
+- Existing paid manual periods must stay available until their recorded expiration even after cancellation. Essential free recovery support and private records remain preserved.
+- No verified positive-path membership approval test yet; never approve an unpaid test request as though paid.
+- The GitHub Pages main site is untouched; all frontend changes above are isolated to the Vercel test branch.
+
 ## Important safeguards
 Do not expose Supabase service-role credentials in browser code. Do not use client-only premium checks as production enforcement. Do not activate billing, start trials, remove free tools, or invite broad public use before testing and authorization. A successful SQL Editor run confirms execution, not secure runtime behavior.
 
