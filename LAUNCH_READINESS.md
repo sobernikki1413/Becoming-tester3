@@ -8,7 +8,7 @@ Prepare and test the website and mobile app privately, confirm funding and costs
 **One account, one membership across platforms.** Essential recovery tools remain free. Premium access, gifts and scholarships must be recognized across web and future apps. A mobile app must not charge a second membership simply because someone already paid on the web. Check platform billing requirements before implementing purchases.
 
 ## Membership decisions
-- Free seven-day full-access trial. No card and no automatic charges by default.
+- Free three-day full-access trial (new trials only; honor previously started seven-day trials). No card and no automatic charges by default.
 - Optional paid conversion only with explicit consent, disclosed terms and advance reminder.
 - Provisional price targets: $6.99 per month / $59.99 per year, pending cost review.
 - Twelve-month scholarship codes: unique, single-use, no credit card, no automatic renewal.
