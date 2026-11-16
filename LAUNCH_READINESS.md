@@ -8,7 +8,7 @@ Prepare and test the website and mobile app privately, confirm funding and costs
 **One account, one membership across platforms.** Essential recovery tools remain free. Premium access, gifts and scholarships must be recognized across web and future apps. A mobile app must not charge a second membership simply because someone already paid on the web. Check platform billing requirements before implementing purchases.
 
 ## Membership decisions
-- Free seven-day full-access trial. No card and no automatic charges by default.
+- Free three-day full-access trial (new trials only; honor previously started seven-day trials). No card and no automatic charges by default.
 - Optional paid conversion only with explicit consent, disclosed terms and advance reminder.
 - Provisional price targets: $6.99 per month / $59.99 per year, pending cost review.
 - Twelve-month scholarship codes: unique, single-use, no credit card, no automatic renewal.
@@ -32,6 +32,16 @@ Prepare and test the website and mobile app privately, confirm funding and costs
 | Mobile apps | Not built | App packaging, real-device testing, store requirements and review |
 | Community and meetings | Planning-stage | Moderation, privacy, staffing, infrastructure and safety |
 | Legal and operations | Not finalized | Terms, privacy, support processes and actual cost model |
+
+## November 16, 2026 — verified tester progress and remaining gates
+- Tested with founder: sign-in on the original Supabase project, manual payment reference creation, administrator queue display, and rejecting an unpaid test request.
+- The Membership navigation tab separates payments/scholarships from More; the ocean-wave donation tracker is a manually maintained $0 of $600 starting display, not real-time verified giving.
+- The manual cancellation button and corresponding secure server RPC have been committed to the feature branch. The new cancellation SQL has **not** been confirmed installed in the original authentication database and must not be described as operational yet.
+- Automatic renewals are **planned optional** functionality, not implemented. Before enabling: explicit opt-in, secure payment-provider integration, authorized billing state, receipts, a real cancellation mechanism that prevents future charges, payment-failure handling, refund/dispute processes, and tests. A manual cancellation flag alone cannot stop provider-side recurring charges.
+- Existing paid manual periods must stay available until their recorded expiration even after cancellation. Essential free recovery support and private records remain preserved.
+- No verified positive-path membership approval test yet; never approve an unpaid test request as though paid.
+- Founder confirmed read/write privilege audit on the account's Supabase project: authenticated direct INSERT/UPDATE/DELETE on recovery_records are false, while authenticated EXECUTE on becoming_save_section is true. This is a permissions check, not an end-to-end isolation test.
+- The GitHub Pages main site is untouched; all frontend changes above are isolated to the Vercel test branch.
 
 ## Important safeguards
 Do not expose Supabase service-role credentials in browser code. Do not use client-only premium checks as production enforcement. Do not activate billing, start trials, remove free tools, or invite broad public use before testing and authorization. A successful SQL Editor run confirms execution, not secure runtime behavior.
