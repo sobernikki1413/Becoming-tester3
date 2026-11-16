@@ -890,7 +890,7 @@ function showPublicCreator(){authPanel.style.display='block';document.querySelec
 
 const originalRender=render;
 const extraTitles={toolbox:'My Recovery Toolbox',letters:'Letters to Myself',beforebuy:'Before You Buy',overviews:'Recovery Overviews',support:'Support Becoming',spirituality:'Faith & Spirituality',creator:'Meet Nikki — The Heart Behind Becoming'};
-function featureNav(k){if(timer){clearInterval(timer);timer=null}page=k;render();window.scrollTo({top:0,behavior:'auto'})}
+function featureNav(k){if(k==='beforebuy'){openBeforeBuy();return}if(timer){clearInterval(timer);timer=null}beforeBuyAuthorizedUid=null;page=k;render();window.scrollTo({top:0,behavior:'auto'})}
 function safeValue(id){return el(id)?.value?.trim()||''}
 function saveExtra(k,record){const a=store(k);a.unshift({...record,date:now()});if(put(k,a))render()}
 function editExtra(k,i,field){editRecord(k,i)}
@@ -906,24 +906,37 @@ function showLetterForJourney(){} // Legacy navigation compatibility; saved lett
 function letterHistory(){const a=store('urgeLetters');return a.length?a.map((x,i)=>`<div class="entry"><h4>${escapeHtml(x.title||x.journey||'A letter to myself')}</h4><small>${escapeHtml(x.date||'')} ${x.journey?' · '+escapeHtml(x.journey):''}</small><p style="white-space:pre-wrap">${escapeHtml(x.text||'')}</p><div class="entry-actions">${b('Edit letter',`editRecord('urgeLetters',${i})`,'alt')} ${b('Delete',`del('urgeLetters',${i})`,'alt')}</div></div>`).join(''):'<p>No letters saved yet. Begin whenever you want.</p>'}
 function saveLetter(){const title=el('letterKind')?.value==='my-own'?safeValue('letterCustom'):el('letterKind')?.value;const text=safeValue('letterText'),journey=el('letterJourney')?.value||'';if(!title||!text)return alert('Choose a letter title and write something before saving.');const a=store('urgeLetters');a.unshift({title,journey,text,date:now()});if(put('urgeLetters',a))render()}
 let beforeBuyAuthorizedUid=null;
-async function openBeforeBuy(){
+function openBeforeBuy(){
+ beforeBuyAuthorizedUid=null;
+ page='beforebuy';
+ render();
+}
+async function unlockBeforeBuy(){
  if(!activeUser)return;
  const uid=activeUser.id;
- const previous=page;
- const {data,error}=await supabaseClient.rpc('becoming_has_premium_access');
- if(!activeUser||activeUser.id!==uid)return;
- beforeBuyAuthorizedUid=(!error&&data===true)?uid:null;
- page='beforebuy';render();
- const label=el('beforebuy-access-status');
- if(label)label.textContent=error
-  ?'We could not confirm Premium access right now. Your free spending-urge tools are still available.'
-  :data===true?'Premium access confirmed.':'Before You Buy requires Premium or an active trial. Immediate spending-urge support is always free.';
+ const output=el('beforebuy-access-status');
+ if(output)output.textContent='Checking your Premium membership…';
+ let data,error;
+ try{({data,error}=await supabaseClient.rpc('becoming_has_premium_access'))}
+ catch(e){error=e}
+ if(!activeUser||activeUser.id!==uid||page!=='beforebuy')return;
+ if(!error&&data===true){
+  beforeBuyAuthorizedUid=uid;
+  render();
+ }else{
+  beforeBuyAuthorizedUid=null;
+  const notice=el('beforebuy-access-status');
+  if(notice)notice.textContent=error
+   ?'Membership could not be verified. Before You Buy is locked; your free urge-support tools remain available.'
+   :'Premium membership or an active trial is required to open Before You Buy. Free urge support remains available.';
+ }
 }
+
 function beforeBuyHistory(){
  return '<div class="card"><h3>My saved decision history</h3><p class="muted">Your earlier entries are preserved and remain visible even without Premium.</p>'+extraRows('buyDecisions',x=>'<p><strong>'+escapeHtml(x.item||'A purchase decision')+'</strong><br>'+escapeHtml(x.reason)+' · '+escapeHtml(x.decision)+(x.feeling?'<br>Feeling: '+escapeHtml(x.feeling):'')+'</p>')+'</div>';
 }
 function buyScreen(){
- if(beforeBuyAuthorizedUid!==activeUser?.id)return `<div class="hero"><h3>Before You Buy · Premium</h3><p>Our guided purchase-decision tool is included with Premium or an active trial. Essential spending-urge support remains free.</p></div><div class="card"><p id="beforebuy-access-status" role="status" aria-live="polite">Premium access hasn't been confirmed.</p>${b('Check Premium access','openBeforeBuy()','alt')} ${b('Get free urge support',"nav('mental');tool('urge')",'soft')} ${b('Open free coping plan',"nav('mental');tool('plan')",'alt')}</div>${beforeBuyHistory()}`;
+ if(beforeBuyAuthorizedUid!==activeUser?.id)return `<div class="hero"><h3>Before You Buy · Premium</h3><p>Our guided purchase-decision tool is included with Premium or an active trial. Essential spending-urge support remains free.</p></div><div class="card"><p id="beforebuy-access-status" role="status" aria-live="polite">This guided tool is locked until your Premium membership or active trial is verified.</p>${b('Unlock with Premium','unlockBeforeBuy()','alt')} ${b('Get free urge support',"nav('mental');tool('urge')",'soft')} ${b('Open free coping plan',"nav('mental');tool('plan')",'alt')}</div>${beforeBuyHistory()}`;
  return `<div class="hero"><h3>Before You Buy</h3><p>A little room to decide, without assuming that buying something is wrong.</p></div><div class="card"><label for="buyItem">What am I considering?</label><input id="buyItem" maxlength="200" placeholder="Optional item or purchase"><label for="buyFeeling">What am I feeling?</label><input id="buyFeeling" maxlength="200" placeholder="Optional"><label for="buyReason">What is this purchase about?</label><select id="buyReason"><option>Not sure</option><option>A need</option><option>A want</option><option>Trying to change how I feel</option></select><label for="buyDecision">What did I decide?</label><select id="buyDecision"><option>Still thinking</option><option>Wait and revisit</option><option>Decided not to buy</option><option>Decided to buy</option></select><p class="muted">Consider whether it fits your budget, goals, and personal recovery boundaries.</p>${b('Save my decision','saveBuy()')}<p id="beforebuy-save-status" role="status" aria-live="polite"></p></div><div class="card"><h3>My decision history</h3><p class="muted">Private, optional, and not a relapse tracker.</p>${extraRows('buyDecisions',x=>`<p><strong>${escapeHtml(x.item||'A purchase decision')}</strong><br>${escapeHtml(x.reason)} · ${escapeHtml(x.decision)}${x.feeling?'<br>Feeling: '+escapeHtml(x.feeling):''}</p>`)}</div>`}
 async function saveBuy(){
  if(!activeUser)return;
