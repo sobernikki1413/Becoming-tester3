@@ -1070,8 +1070,8 @@ function editRecord(section,index){
 
 function checkinHistoryRows(){const entries=store('checkins');if(!entries.length)return '<div class="card"><p>No check-ins saved to this account yet.</p></div>';return entries.map((entry,i)=>`<div class="entry"><small>${escapeHtml(entry.date)}</small><p style="white-space:pre-wrap">${escapeHtml([entry.text,entry.mood?'Mood: '+entry.mood:'',entry.trigger?'Trigger: '+entry.trigger:'',entry.helped?'What helped: '+entry.helped:'',entry.need?'Next support: '+entry.need:'',entry.spend?'Notes: '+entry.spend:''].filter(Boolean).join('\n'))}</p>${b('Edit check-in',`editRecord('checkins',${i})`,'alt')} ${b('Delete',`del('checkins',${i})`,'alt')}</div>`).join('')}
 function editCheckin(i){editRecord('checkins',i)}
-const SUPABASE_URL='https://aqoaugennciniiwyduxd.supabase.co';
-const SUPABASE_KEY='sb_publishable_rVD3YYwKRIXmJPEY723_qA_nHiN3k5-';
+const SUPABASE_URL='https://ojdzrlcsmzuhtnnfbtlm.supabase.co';
+const SUPABASE_KEY='sb_publishable_X1s-4QeZ325imP38Xs1PWg_Vtvdd_hu';
 let supabaseClient=null;
 const authPanel=document.createElement('div');authPanel.id='becoming-auth';document.body.appendChild(authPanel);
 function authMessage(message){const x=document.getElementById('auth-status');if(x)x.textContent=message}
