@@ -40,6 +40,7 @@ Prepare and test the website and mobile app privately, confirm funding and costs
 - Automatic renewals are **planned optional** functionality, not implemented. Before enabling: explicit opt-in, secure payment-provider integration, authorized billing state, receipts, a real cancellation mechanism that prevents future charges, payment-failure handling, refund/dispute processes, and tests. A manual cancellation flag alone cannot stop provider-side recurring charges.
 - Existing paid manual periods must stay available until their recorded expiration even after cancellation. Essential free recovery support and private records remain preserved.
 - No verified positive-path membership approval test yet; never approve an unpaid test request as though paid.
+- Founder confirmed read/write privilege audit on the account's Supabase project: authenticated direct INSERT/UPDATE/DELETE on recovery_records are false, while authenticated EXECUTE on becoming_save_section is true. This is a permissions check, not an end-to-end isolation test.
 - The GitHub Pages main site is untouched; all frontend changes above are isolated to the Vercel test branch.
 
 ## Important safeguards
