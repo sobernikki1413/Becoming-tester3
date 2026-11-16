@@ -1098,7 +1098,13 @@ async function becomingRequestCashAppCode(){
   if(!r||!/^BEC-PAY-[A-F0-9]{20}$/.test(String(r.reference_code)))throw Error('Invalid response');
   out.innerHTML='<p>Include this reference in your Cash App note:</p><input readonly aria-label="Cash App payment reference" id="becoming-cashapp-code" value="'+escapeHtml(String(r.reference_code))+'"><p><button class="btn alt" onclick="becomingCopyPaymentCode()">Copy reference</button></p><p class="muted">Amount: $'+(Number(r.amount_cents)/100).toFixed(2)+'. Send only after confirming the destination is $Becoming1413. <a href="https://cash.app/$Becoming1413" target="_blank" rel="noopener noreferrer">Open Cash App</a>. The payment is not automatically verified.</p><p role="status" id="becoming-cashapp-copy-result"></p>';
  }catch(e){
-  out.textContent='Payment code requests are not available yet. No membership has been purchased or activated. Please contact support before sending money.';
+  const code=String(e?.code||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,32);
+  const category=code==='PGRST202'?'Database API function unavailable':
+    code==='42501'?'Account permission denied':
+    code==='23505'?'Existing request conflict':
+    code==='23514'?'Membership plan validation error':
+    code==='PGRST301'||code==='401'?'Sign-in session expired':'Request failed';
+  out.textContent=category+' (error '+(code||'unknown')+'). No payment was confirmed or membership activated. Please share only this error code with support.';
  }
 }
 async function becomingCopyPaymentCode(){
