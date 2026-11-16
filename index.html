@@ -597,7 +597,39 @@ function filterJournalHistory(query) {
     ? visible + ' of ' + entries.length + ' reflections shown' + (term && visible === 0 ? '. Try another search.' : '.')
     : 'No reflections saved yet.';
 }
-function saveJournal(){let x=el('journal').value.trim();if(!x)return;let a=store('reflections');a.unshift({date:now(),text:x,...(journalMode==='guided'&&journalPrompts.length?{prompt:journalPrompts[journalPromptIndex]}:{})});if(!put('reflections',a))return;reflectionDraft='';render()}
+async function saveJournal(){
+ const input=el('journal');
+ const x=input?.value.trim();
+ if(!x)return;
+ const guided=journalMode==='guided'&&journalPrompts.length>0;
+ const uid=activeUser?.id;
+ const promptText=guided?journalPrompts[journalPromptIndex]:null;
+ if(guided){
+  const status=el('guided-access-message');
+  if(status)status.textContent='Checking guided prompt access before saving…';
+  let data,error;
+  try{({data,error}=await supabaseClient.rpc('becoming_has_premium_access'))}
+  catch(e){error=e}
+  if(!activeUser||activeUser.id!==uid)return;
+  if(error||data!==true){
+   reflectionDraft=x;
+   journalMode='blank';
+   journalPrompts=[];
+   render();
+   const message=el('guided-access-message');
+   if(message)message.textContent=error
+    ?'Premium access could not be confirmed. Your writing is still here. You can save it as free writing.'
+    :'Guided prompt access has ended. Your writing is still here. You can save it as free writing.';
+   return;
+  }
+ }
+ if(!activeUser||activeUser.id!==uid)return;
+ const a=store('reflections');
+ a.unshift({date:now(),text:x,...(guided&&promptText?{prompt:promptText}:{})});
+ if(!put('reflections',a))return;
+ reflectionDraft='';
+ render();
+}
 function saveGratitude(){let x=el('gratitude').value.trim();if(!x)return;let a=store('gratitudes');a.unshift({date:now(),text:x});if(put('gratitudes',a))render()}
 function nextEncouragement(){encouragementIndex=(encouragementIndex+1)%encouragement.length;render()}
 function addGoal(){let x=prompt('What small goal would you like to set?');if(!x?.trim())return;let a=store('goals');a.push({date:now(),text:x.trim(),done:false});if(put('goals',a))render()}
